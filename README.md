@@ -1,5 +1,15 @@
 # ES30 Cafe
 
+## Go live
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/k-12345-1/es30-cafe-admin)
+
+One click, then set `ADMIN_TOKEN` (the staff code for `/admin.html`) when Render
+asks. Everything else comes from `render.yaml`: the disk that keeps the menu,
+stock, orders and giveaway entries, and the address Stripe returns customers to.
+Leave `STRIPE_SECRET_KEY` unset to run in demo mode; add it when you are ready
+to take real payments.
+
 A one-page storefront: logo splash, View Menu scrolls to the menu, add items from
 the button on the right, checkout with a name through Stripe, then an order number.
 

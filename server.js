@@ -9,7 +9,11 @@ import { MENU as SEED_MENU, SITE } from './menu.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.PORT || 4242);
-const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
+// Render sets RENDER_EXTERNAL_URL to the live address of the service, so a
+// deploy there needs no PUBLIC_URL of its own for Stripe to return the
+// customer to the right place.
+const PUBLIC_URL =
+  process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
 const CURRENCY = (process.env.CURRENCY || 'usd').toLowerCase();
 const SECRET = process.env.STRIPE_SECRET_KEY;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
