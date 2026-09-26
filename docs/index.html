@@ -1422,6 +1422,8 @@ window.addEventListener('resize', () => {
 
 let clockOffset = 0;        // server time minus this device's time
 let breakEndsAt = null;
+let opensAt = null;
+let openingLeadMs = 60 * 60_000;
 let clockTimer;
 
 let clockDrawn = false;
@@ -1461,48 +1463,68 @@ function setDigit(flip, value) {
   }, 540);
 }
 
-function paintClock(msLeft, resting = false) {
+function paintClock(msLeft, mode) {
   const clock = el('breakClock');
   const left = Math.max(0, msLeft);
   const total = Math.ceil(left / 1000);
   const mins = Math.floor(total / 60);
   const secs = total % 60;
-  const digits = [
-    String(Math.min(99, mins)).padStart(2, '0'),
-    String(secs).padStart(2, '0')
-  ].join('');
+  const digits = String(Math.min(99, mins)).padStart(2, '0') + String(secs).padStart(2, '0');
 
   clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
   clockDrawn = true;
-  clock.classList.toggle('resting', resting);
-  clock.classList.toggle('last-minute', !resting && left > 0 && left <= 60_000);
-  clock.classList.toggle('over', !resting && left === 0);
 
-  clock.querySelector('.flip-label').textContent =
-    resting ? '10-Minute Break Countdown'
-      : left === 0 ? 'ES30 Cafe is closed!'
-      : 'break ends in';
+  clock.classList.toggle('resting', mode === 'waiting' || mode === 'soon');
+  clock.classList.toggle('last-minute', mode === 'closing' && left > 0 && left <= 60_000);
+  clock.classList.toggle('over', mode === 'closed');
+
+  const labels = {
+    waiting: '10-Minute Break Countdown',
+    opening: 'ES30 Cafe opens in',
+    soon: 'ES30 Cafe opening soon',
+    closing: 'ES30 Cafe closes in',
+    closed: 'ES30 Cafe is closed!'
+  };
+  clock.querySelector('.flip-label').textContent = labels[mode];
 }
 
 const BREAK_LENGTH_MS = 10 * 60_000;
+
+/* The one clock, through the day:
+     opens in     counting down the hour before the cafe opens
+     opening soon that moment has come and staff have not started the break
+     closes in    the break is running
+     closed       it has run out
+     waiting      nothing is set, so it rests at the length of a break */
 
 function runClock() {
   clearInterval(clockTimer);
   const clock = el('breakClock');
   clock.hidden = false;
 
-  // Nothing running: the clock sits at the full ten minutes, waiting.
-  if (!breakEndsAt) {
-    paintClock(BREAK_LENGTH_MS, true);
-    return;
-  }
-
   const tick = () => {
-    const left = breakEndsAt - (Date.now() + clockOffset);
-    paintClock(left);
-    // At zero the cafe is closed and stays closed: the sign holds until staff
-    // clear it or start the next break.
-    if (left <= 0) clearInterval(clockTimer);
+    const now = Date.now() + clockOffset;
+
+    if (breakEndsAt) {
+      const left = breakEndsAt - now;
+      paintClock(left, left > 0 ? 'closing' : 'closed');
+      if (left <= 0) clearInterval(clockTimer);     // the sign stays up
+      return;
+    }
+
+    if (opensAt) {
+      const until = opensAt - now;
+      if (until <= 0) {
+        paintClock(0, 'soon');
+        return;                                     // holds until the break starts
+      }
+      if (until <= openingLeadMs) {
+        paintClock(until, 'opening');
+        return;
+      }
+    }
+
+    paintClock(BREAK_LENGTH_MS, 'waiting');
   };
 
   tick();
@@ -1558,8 +1580,11 @@ async function syncMenu() {
   state.stripeKey = data.stripeKey || '';
 
   if (Number.isFinite(data.now)) clockOffset = data.now - Date.now();
-  if (data.breakEndsAt !== breakEndsAt || !clockTimer) {
+  if (Number.isFinite(data.opensLeadMinutes)) openingLeadMs = data.opensLeadMinutes * 60_000;
+
+  if (data.breakEndsAt !== breakEndsAt || data.opensAt !== opensAt || !clockTimer) {
     breakEndsAt = data.breakEndsAt || null;
+    opensAt = data.opensAt || null;
     runClock();
   }
   state.items = Object.fromEntries(

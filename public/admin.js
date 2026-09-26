@@ -196,7 +196,51 @@ function when(value) {
 
 let breakTimer;
 
+function showOpens() {
+  const note = el('opensNote');
+  const clear = el('clearOpens');
+
+  if (!data.opensAt) {
+    note.textContent = `No opening time set. Set one and the clock counts down for the last ${data.opensLeadMinutes} minutes before it.`;
+    clear.hidden = true;
+    return;
+  }
+
+  const when = new Date(data.opensAt);
+  el('opensAt').value =
+    `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
+  note.textContent = `Opens at ${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}, ${when.toLocaleDateString(undefined, { weekday: 'long' })}.`;
+  clear.hidden = false;
+}
+
+el('setOpens').addEventListener('click', async () => {
+  const at = el('opensAt').value;
+  if (!at) return say('Pick a time first.', true);
+  try {
+    const res = await fetch('/api/opens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth() },
+      body: JSON.stringify({ at })
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Could not set that.');
+    await load();
+    say('Opening time set');
+  } catch (err) { say(err.message, true); }
+});
+
+el('clearOpens').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/opens', { method: 'DELETE', headers: auth() });
+    if (!res.ok) throw new Error('Could not clear that.');
+    await load();
+    say('Opening time cleared');
+  } catch (err) { say(err.message, true); }
+});
+
 function showBreak() {
+  showOpens();
+
   clearInterval(breakTimer);
   const left = el('breakLeft');
   const stop = el('stopBreak');

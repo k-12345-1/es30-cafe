@@ -60,7 +60,16 @@
         <h2>Break</h2>
         <span class="break-left" id="breakLeft"></span>
       </div>
-      <p class="panel-note">Starts the clock at the top of the customers' menu. Everyone counts down to the same moment.</p>
+      <p class="panel-note">The clock at the top of the customers' menu. Everyone counts down to the same moment.</p>
+
+      <div class="opens-row">
+        <label for="opensAt">Opens at</label>
+        <input type="time" id="opensAt" step="60">
+        <button class="ghost-pill" type="button" id="setOpens">Set</button>
+        <button class="ghost-pill" type="button" id="clearOpens" hidden>Clear</button>
+      </div>
+      <p class="panel-note" id="opensNote"></p>
+
       <div class="admin-actions break-actions">
         <button class="pay ready" type="button" id="startBreak">Start 10 minutes</button>
         <button class="ghost-pill" type="button" id="stopBreak" hidden>Stop</button>

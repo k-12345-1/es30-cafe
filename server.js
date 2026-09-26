@@ -43,8 +43,10 @@ const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 const BREAK_FILE = path.join(DATA_DIR, 'break.json');
 
-// The class break the cafe runs in.
+// The class break the cafe runs in, and how long before opening the clock
+// starts counting down to it.
 const BREAK_MINUTES = 10;
+const OPENS_LEAD_MINUTES = 60;
 
 const app = express();
 
@@ -385,6 +387,8 @@ app.get('/api/menu', async (_req, res) => {
     // of the room.
     now: Date.now(),
     breakEndsAt: brk.endsAt || null,
+    opensAt: brk.opensAt || null,
+    opensLeadMinutes: OPENS_LEAD_MINUTES,
     menu: menu.map((section) => ({
       ...section,
       groups: section.groups.map((group) => ({
@@ -562,13 +566,64 @@ app.post('/api/break', staffOnly, async (req, res) => {
   }
 
   const endsAt = Date.now() + Math.round(minutes * 60_000);
-  await exclusive(() => writeJson(BREAK_FILE, { endsAt }));
+
+  await exclusive(async () => {
+    const brk = await readJson(BREAK_FILE, {});
+    const next = { endsAt };
+
+    // The opening time is a standing arrangement: once today's has come round,
+    // it rolls on to the same hour tomorrow rather than needing setting again.
+    if (brk.opensAt) {
+      const when = new Date(brk.opensAt);
+      while (when.getTime() <= endsAt) when.setDate(when.getDate() + 1);
+      next.opensAt = when.getTime();
+    }
+
+    await writeJson(BREAK_FILE, next);
+  });
+
   announce();
   res.json({ ok: true, endsAt });
 });
 
 app.delete('/api/break', staffOnly, async (_req, res) => {
-  await exclusive(() => writeJson(BREAK_FILE, {}));
+  await exclusive(async () => {
+    const brk = await readJson(BREAK_FILE, {});
+    await writeJson(BREAK_FILE, brk.opensAt ? { opensAt: brk.opensAt } : {});
+  });
+  announce();
+  res.json({ ok: true });
+});
+
+/* The time the cafe opens, given as the clock on the wall says it: the server
+   runs on the cafe's timezone, so "12:00" means noon here. If that hour has
+   already gone by, it is taken as tomorrow's. */
+
+app.post('/api/opens', staffOnly, async (req, res) => {
+  const at = String(req.body?.at || '');
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(at);
+  if (!match) return res.status(400).json({ error: 'Give the time as 12:00.' });
+
+  const now = new Date();
+  const when = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+    Number(match[1]), Number(match[2]), 0, 0);
+  if (when.getTime() <= now.getTime()) when.setDate(when.getDate() + 1);
+
+  await exclusive(async () => {
+    const brk = await readJson(BREAK_FILE, {});
+    await writeJson(BREAK_FILE, { ...brk, opensAt: when.getTime() });
+  });
+
+  announce();
+  res.json({ ok: true, opensAt: when.getTime() });
+});
+
+app.delete('/api/opens', staffOnly, async (_req, res) => {
+  await exclusive(async () => {
+    const brk = await readJson(BREAK_FILE, {});
+    delete brk.opensAt;
+    await writeJson(BREAK_FILE, brk);
+  });
   announce();
   res.json({ ok: true });
 });
@@ -817,6 +872,8 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     currency: CURRENCY,
     now: Date.now(),
     breakEndsAt: brk.endsAt || null,
+    opensAt: brk.opensAt || null,
+    opensLeadMinutes: OPENS_LEAD_MINUTES,
     breakMinutes: BREAK_MINUTES,
     sections: menu.map((s) => ({
       section: s.section,
