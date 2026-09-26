@@ -182,7 +182,7 @@ function renderStockNotes() {
     let note = '';
 
     if (left > 0 && qty >= left) note = `that is all ${left} we have`;
-    else if (left > 0 && left < 10) note = `only ${left} left`;
+    else if (left > 0 && left < 10) note = `only ${left} left!`;
 
     let el = row.querySelector('.row-stock');
     if (!note) { if (el) el.remove(); continue; }
