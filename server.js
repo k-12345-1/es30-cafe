@@ -127,16 +127,19 @@ function cafeState(brk = {}, at = Date.now()) {
   const show =
     mode !== 'closed' || Boolean(endsAt && at < endsAt + CLOSED_SIGN_MINUTES * 60_000);
 
-  // The next time the doors are due, for a menu that is showing no clock.
+  // The next time the doors are due, and the next time the till opens, which
+  // is when the hour begins rather than when the break does.
   const nextOpensAt = at < opensAt
     ? opensAt
     : nextCountdown + OPENS_LEAD_MINUTES * 60_000;
+  const nextOrdersAt = at < countdownFrom ? countdownFrom : nextCountdown;
 
   return {
     mode,
     target,
     show,
     nextOpensAt,
+    nextOrdersAt,
     running,
     // Open from the moment the hour starts: through the countdown, through the
     // wait for staff, through the break, and for a few minutes after it.
@@ -493,6 +496,7 @@ app.get('/api/menu', async (_req, res) => {
       return {
         clock: { mode: state.mode, target: state.target, show: state.show },
         nextOpensAt: state.nextOpensAt,
+        nextOrdersAt: state.nextOrdersAt,
         ordersOpen: state.ordersOpen,
         ordersCloseAt: state.ordersCloseAt
       };

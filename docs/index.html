@@ -1453,7 +1453,7 @@ let clockOffset = 0;        // server time minus this device's time
 let clockMode = 'closed';   // opening, soon, closing, closed: the server decides
 let clockTarget = null;     // the moment being counted to, when there is one
 let clockShown = null;      // null until the first answer from the server
-let nextOpensAt = null;     // when the doors are next due
+let nextOrdersAt = null;    // when the till next opens, which is when the hour starts
 let clockTimer;
 
 let clockDrawn = false;
@@ -1540,11 +1540,13 @@ function runClock() {
     const note = el('clockNote');
     if (!note) return;
 
-    if (nextOpensAt) {
-      const when = new Date(nextOpensAt);
+    if (nextOrdersAt) {
+      const when = new Date(nextOrdersAt);
+      const time = when
+        .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+        .replace(/\s?([AP])M/i, (_, half) => half.toLowerCase() + 'm');
       note.textContent =
-        `Open ${when.toLocaleDateString(undefined, { weekday: 'long' })}s at ` +
-        `${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`;
+        `Accepting orders on ${when.toLocaleDateString(undefined, { weekday: 'long' })} at ${time}.`;
       note.classList.add('waiting');
       note.hidden = false;
     } else {
@@ -1634,7 +1636,7 @@ async function syncMenu() {
   const mode = data.clock?.mode || 'closed';
   const target = data.clock?.target || null;
   const shown = data.clock?.show !== false;
-  nextOpensAt = data.nextOpensAt || null;
+  nextOrdersAt = data.nextOrdersAt || null;
   if (mode !== clockMode || target !== clockTarget || shown !== clockShown) {
     clockMode = mode;
     clockTarget = target;
