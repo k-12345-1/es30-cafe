@@ -100,9 +100,20 @@ const SOON_HOLD_MINUTES = 120;
 const CLOSED_SIGN_MINUTES = 120;
 
 function cafeState(brk = {}, at = Date.now()) {
-  const { countdownFrom, opensAt, nextCountdown } = cycle(at);
+  const scheduled = cycle(at);
+  const { nextCountdown } = scheduled;
   const endsAt = brk.endsAt || null;
   const closedAt = brk.closedAt || null;
+
+  // Staff can start the hour by hand, on any day. A hand-started hour that is
+  // more recent than the scheduled one takes its place, so everything below
+  // reads the same whether the cycle began by clock or by button.
+  const byHand = brk.countdownAt || null;
+  const manual = Boolean(byHand && byHand <= at && byHand > scheduled.countdownFrom);
+  const countdownFrom = manual ? byHand : scheduled.countdownFrom;
+  const opensAt = manual
+    ? byHand + OPENS_LEAD_MINUTES * 60_000
+    : scheduled.opensAt;
 
   // Anything staff did belongs to this cycle only; last week's does not count.
   const stopped = Boolean(closedAt && closedAt >= countdownFrom);
@@ -687,6 +698,16 @@ app.post('/api/subscribe', limit('subscribe', 8), async (req, res) => {
    One clock for the room: staff start it, and every phone counts down to the
    same moment rather than to its own idea of ten minutes. */
 
+// Start the hour now, whatever the day. A fresh cycle: any break or stop from
+// the last one is cleared, the clock counts down from an hour, and the till
+// opens straight away.
+app.post('/api/countdown', staffOnly, async (_req, res) => {
+  const countdownAt = Date.now();
+  await exclusive(() => writeJson(BREAK_FILE, { countdownAt }));
+  announce();
+  res.json({ ok: true, countdownAt, opensAt: countdownAt + OPENS_LEAD_MINUTES * 60_000 });
+});
+
 app.post('/api/break', staffOnly, async (req, res) => {
   const minutes = Number(req.body?.minutes ?? BREAK_MINUTES);
   if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 120) {
@@ -695,7 +716,11 @@ app.post('/api/break', staffOnly, async (req, res) => {
 
   const endsAt = Date.now() + Math.round(minutes * 60_000);
 
-  await exclusive(() => writeJson(BREAK_FILE, { endsAt }));   // clears any earlier stop
+  await exclusive(async () => {
+    const brk = await readJson(BREAK_FILE, {});
+    // Keeps a hand-started hour, drops any earlier stop.
+    await writeJson(BREAK_FILE, { countdownAt: brk.countdownAt || null, endsAt });
+  });
 
   announce();
   res.json({ ok: true, endsAt });
@@ -961,6 +986,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
         clock: { mode: state.mode, target: state.target, show: state.show },
         running: state.running,
         breakEndsAt: brk.endsAt || null,
+        countdownAt: brk.countdownAt || null,
         opensAt: state.opensAt,
         countdownFrom: state.countdownFrom,
         nextCountdown: state.nextCountdown,

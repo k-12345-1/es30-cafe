@@ -207,21 +207,52 @@ function showBreak() {
   const left = el('breakLeft');
   const stop = el('stopBreak');
   const start = el('startBreak');
+  const hour = el('startHour');
   const endsAt = data.breakEndsAt;
+  const offset = data.now - Date.now();
+  const mss = (ms) => {
+    const total = Math.ceil(ms / 1000);
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  };
 
-  if (!endsAt) {
-    left.textContent = data.ordersOpen ? 'taking orders' : 'not running';
-    stop.textContent = 'Stop taking orders';
-    stop.hidden = !data.ordersOpen;         // the till can be shut before the break
+  // The hour can be started by hand any day; there is nothing to start while
+  // the ten minutes are running.
+  hour.hidden = data.clock?.mode === 'closing';
+  hour.textContent = data.clock?.mode === 'opening' ? 'Restart the hour' : 'Start the hour';
+
+  // Once the till is shut there is nothing left to count, even if the ten
+  // minutes had time on them when stop was pressed.
+  if (data.stopped) {
+    left.textContent = 'closed';
     start.textContent = `Start ${data.breakMinutes} minutes`;
+    stop.hidden = true;
     return;
   }
 
-  const offset = data.now - Date.now();
+  if (!endsAt) {
+    start.textContent = `Start ${data.breakMinutes} minutes`;
+    stop.textContent = 'Stop taking orders';
+    stop.hidden = !data.ordersOpen;         // the till can be shut before the break
+    const target = data.clock?.mode === 'opening' ? data.clock.target : null;
+
+    if (!target) {
+      left.textContent = data.ordersOpen ? 'taking orders' : 'not running';
+      return;
+    }
+
+    const tick = () => {
+      const ms = Math.max(0, target - (Date.now() + offset));
+      left.textContent = `opens in ${mss(ms)}`;
+      if (ms === 0) { clearInterval(breakTimer); load(); }
+    };
+    tick();
+    breakTimer = setInterval(tick, 1000);
+    return;
+  }
+
   const paint = () => {
     const ms = Math.max(0, endsAt - (Date.now() + offset));
-    const total = Math.ceil(ms / 1000);
-    left.textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} left`;
+    left.textContent = `${mss(ms)} left`;
     if (ms === 0) {
       clearInterval(breakTimer);
       left.textContent = data.ordersOpen ? 'ended: still serving' : 'closed';
@@ -237,6 +268,15 @@ function showBreak() {
   paint();
   breakTimer = setInterval(paint, 1000);
 }
+
+el('startHour').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/countdown', { method: 'POST', headers: auth() });
+    if (!res.ok) throw new Error('Could not start the hour.');
+    await load();
+    say('Hour started');
+  } catch (err) { say(err.message, true); }
+});
 
 el('startBreak').addEventListener('click', async () => {
   try {
