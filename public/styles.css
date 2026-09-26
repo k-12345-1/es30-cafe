@@ -8,14 +8,14 @@
   /* The one warm note in the palette, kept for stock warnings only. */
   --alert: #C0392B;
 
-  /* One handwriting face throughout, as in the reference. Headings are the same
-     letterforms made heavier with a stroke rather than a second family, which is
-     what keeps the menu looking hand-lettered by one person. */
   /* The reading column. The card fills the window so its scrollbar sits at the
      edge of the screen; this is the width the content inside it holds to. */
   --col: 440px;
   --gutter: 28px;
 
+  /* One handwriting face throughout, as in the reference. Headings are the same
+     letterforms made heavier with a stroke rather than a second family, which is
+     what keeps the menu looking hand-lettered by one person. */
   --hand: "Architects Daughter", "Bradley Hand", cursive;
   --banner: "Archivo Narrow", "Helvetica Neue", sans-serif;
 }
