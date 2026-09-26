@@ -92,7 +92,7 @@ function showTicket(order) {
     <form class="signup" id="signup">
       <label class="signup-line" for="email">Want $5 on ES30 Cafe? Enter your email for a chance to win!</label>
       <div class="signup-row">
-        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="name@college.harvard.edu" required>
         <button type="submit" class="signup-go">Enter</button>
       </div>
     </form>\`;
