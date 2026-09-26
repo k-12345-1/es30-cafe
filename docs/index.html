@@ -439,13 +439,11 @@ body {
 
 .sheet-scrim.open { opacity: 1; pointer-events: auto; }
 
-/* A bottom sheet that is only as tall as its contents, so a short order does
-   not leave a field of empty cream between the items and the total. It grows
-   with the order and stops at the height of the card. */
+/* The sheet covers the card: the order is the whole screen while it is open,
+   never a panel with the menu showing above it. */
 .sheet {
   position: absolute;
-  inset: auto 0 0 0;
-  max-height: 100%;
+  inset: 0;
   background: var(--cream);
   transform: translateY(101%);
   transition: transform 340ms cubic-bezier(.2,.8,.2,1);
@@ -486,8 +484,14 @@ body {
 
 /* Pull the list into the sheet's padding so its scrollbar sits beside the
    content instead of on top of the quantity buttons. */
+/* The heading sits at the top; the order, the total and the name field ride
+   together in the middle of whatever room is left, so a short order never
+   opens a gap between the last item and the total. */
+.sheet > form { margin-bottom: auto; }
+
 .cart-list {
   flex: 0 1 auto;
+  margin-top: auto;
   overflow-y: auto;
   padding-right: 10px;
   margin-right: -10px;
