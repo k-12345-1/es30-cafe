@@ -153,7 +153,7 @@ function paintClock(msLeft, resting = false) {
   clock.classList.toggle('over', !resting && left === 0);
 
   clock.querySelector('.flip-label').textContent =
-    resting ? 'the break' : left === 0 ? 'break over' : 'break ends in';
+    resting ? '10-Minute Break Countdown' : left === 0 ? 'break over' : 'break ends in';
 }
 
 const BREAK_LENGTH_MS = 10 * 60_000;

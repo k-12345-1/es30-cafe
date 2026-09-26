@@ -1241,7 +1241,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
       <section class="screen menu" id="menu">
         <!-- The break clock. Hidden until staff start one. -->
         <div class="flipclock" id="breakClock">
-          <p class="flip-label">the break</p>
+          <p class="flip-label">10-Minute Break Countdown</p>
           <div class="flip-row">
             <span class="flip" data-slot="0"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
             <span class="flip" data-slot="1"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
@@ -1470,7 +1470,7 @@ function paintClock(msLeft, resting = false) {
   clock.classList.toggle('over', !resting && left === 0);
 
   clock.querySelector('.flip-label').textContent =
-    resting ? 'the break' : left === 0 ? 'break over' : 'break ends in';
+    resting ? '10-Minute Break Countdown' : left === 0 ? 'break over' : 'break ends in';
 }
 
 const BREAK_LENGTH_MS = 10 * 60_000;
