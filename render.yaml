@@ -1,0 +1,26 @@
+# One-click deploy blueprint for Render.
+#
+# The stock counts, orders and giveaway entries are JSON files on disk, so the
+# service needs a disk that survives restarts. A platform with an ephemeral
+# filesystem would lose them on every deploy.
+services:
+  - type: web
+    name: es30-cafe-admin
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/menu
+    disk:
+      name: es30-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /opt/render/project/src/data
+      - key: ADMIN_TOKEN
+        sync: false        # set this in the Render dashboard, never in the repo
+      - key: STRIPE_SECRET_KEY
+        sync: false        # leave unset to run in demo mode
+      - key: PUBLIC_URL
+        sync: false        # https://es30-cafe-admin.onrender.com once it is live

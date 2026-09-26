@@ -196,6 +196,25 @@ with a real database.
 - `public/admin.html`, `admin.css`, `admin.js` — the staff side
 - `public/styles.css` — all styling, colors at the top
 
+## Deploying the real thing
+
+`k-12345-1/es30-cafe-admin` is this same app, set up to run on a host. The
+storefront, the admin page, stock, orders and the giveaway list all work there,
+which GitHub Pages cannot do because it only serves static files.
+
+`render.yaml` is a Render blueprint. From the Render dashboard, New → Blueprint,
+pick the `es30-cafe-admin` repo, and it reads that file. Two things to set in
+the dashboard rather than the repo:
+
+- `ADMIN_TOKEN` — the staff code for the admin page
+- `PUBLIC_URL` — `https://es30-cafe-admin.onrender.com` once the name is taken
+
+Leave `STRIPE_SECRET_KEY` unset to run in demo mode, or set it for real payments.
+
+The blueprint mounts a 1GB disk and points `DATA_DIR` at it. That matters: the
+menu, stock, orders and entries are JSON files, and a host with an ephemeral
+filesystem would wipe them on every deploy.
+
 ## The GitHub Pages copy
 
 `docs/index.html` is a standalone build served at the Pages URL. It has no

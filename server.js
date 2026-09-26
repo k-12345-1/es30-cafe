@@ -21,10 +21,14 @@ const RESERVE_MINUTES = 30;
 const DEMO = !SECRET || SECRET === 'sk_test_replace_me';
 const stripe = DEMO ? null : new Stripe(SECRET);
 
-const MENU_FILE = path.join(__dirname, 'menu.json');
-const ORDERS_FILE = path.join(__dirname, 'orders.json');
-const STOCK_FILE = path.join(__dirname, 'stock.json');
-const EMAILS_FILE = path.join(__dirname, 'subscribers.json');
+// On a host with a mounted disk, point DATA_DIR at it so the menu, stock,
+// orders and entries survive restarts and deploys.
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+
+const MENU_FILE = path.join(DATA_DIR, 'menu.json');
+const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
+const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 
 const app = express();
 app.use(express.json());
@@ -481,6 +485,8 @@ app.delete('/api/items/:id', staffOnly, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+await fs.mkdir(DATA_DIR, { recursive: true }).catch(() => {});
 
 app.listen(PORT, () => {
   console.log(`ES30 Cafe running at ${PUBLIC_URL}`);

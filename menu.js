@@ -46,7 +46,7 @@ export const MENU = [
         title: 'Sweet',
         items: [
           { id: 'cookies-2', name: '2 Chocolate Chip Cookies', price: 500, stock: 12 },
-          { id: 'oreos', name: '4 Pack of Oreos', price: 100, stock: 12 }
+          { id: 'oreos', name: '4 Oreos', price: 100, stock: 12 }
         ]
       },
       {
