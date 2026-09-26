@@ -29,17 +29,14 @@
   .banner { width: 700px; }
   .goods { width: 430px; }
   .tag {
-    font-size: 36px; text-align: center; line-height: 1.45;
+    font-family: var(--banner);
+    font-size: 40px; text-align: center; line-height: 1.5;
+    letter-spacing: 0.02em;
     max-width: 815px;
-    -webkit-text-stroke: 0.7px var(--ink);
   }
 
   /* right: the thing to point a phone at */
   .right { display: flex; flex-direction: column; align-items: center; gap: 30px; }
-  .scan {
-    font-family: var(--banner);
-    font-size: 40px; letter-spacing: 0.2em; text-transform: uppercase;
-  }
   .qr-card {
     border: 7px solid var(--ink);
     border-radius: 34px;
@@ -56,7 +53,6 @@
   <p class="tag">Want a snack or drink during ES30 lecture?<br>Order from ES30 CAFE!<br>Pick up in classrooms in the basement.</p>
 </div>
 <div class="right">
-  <p class="scan">Scan to order</p>
   <div class="qr-card"><img src="qr.png" alt="QR code to es30-cafe.onrender.com"></div>
   <p class="url">Visit: es30-cafe.onrender.com</p>
 </div>
