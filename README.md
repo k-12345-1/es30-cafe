@@ -118,8 +118,8 @@ The staff page then asks for that code and remembers it in the browser.
 
 ## Mailing list
 
-Under the Checkout button is an optional line: "Love ES30 Cafe? Enter your email
-to stay updated." An address typed there is saved to `subscribers.json`,
+Under the Checkout button is an optional line: "Want $5 on ES30 Cafe? Enter your
+email for a chance to win!" An address typed there is saved to `subscribers.json`,
 lowercased and de-duplicated, with the date it was added.
 
 It never gets in the way of an order. A malformed address is dropped quietly and
