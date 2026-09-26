@@ -1,11 +1,18 @@
-<title>ES30 Cafe</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFEBAF">
+<meta name="description" content="Order snacks and drinks from ES30 Cafe.">
 <!--
   Static build of the storefront, served by GitHub Pages.
-  Checkout is simulated, the email signup goes nowhere and stock resets on
+  Checkout is simulated, the giveaway entry goes nowhere and stock resets on
   reload, because a static host cannot run the Node server.
-  For real payments, a real mailing list and real stock, run the app:
+  For real payments, real entries and real stock, run the app:
   npm install && npm start   (see README.md)
 -->
+<title>ES30 Cafe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
@@ -544,22 +551,29 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 
 .demo-note { text-align: center; font-size: 12px; opacity: 0.6; margin-top: 10px; }
 
-/* Optional, and clearly separate from the order itself. */
+/* The giveaway, offered once the order is placed. Clearly an extra, sitting
+   under the receipt rather than in the way of paying. */
 .signup {
-  margin-top: 20px;
-  padding-top: 16px;
+  width: 100%;
+  max-width: 340px;
+  margin: 26px auto 0;
+  padding-top: 20px;
   border-top: 2px dotted var(--dot);
 }
 
 .signup-line {
   font-size: 14px;
   line-height: 1.45;
-  opacity: 0.8;
-  margin: 0 0 8px;
+  opacity: 0.85;
+  margin: 0 0 10px;
+  text-align: center;
 }
 
+.signup-row { display: flex; gap: 8px; }
+
 .signup input[type="email"] {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 11px 14px;
   border: 2.5px solid var(--hair);
   border-radius: 12px;
@@ -571,6 +585,22 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 }
 
 .signup input[type="email"]:focus { outline: none; border-color: var(--ink); }
+
+.signup-go {
+  flex: none;
+  padding: 11px 20px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--hand);
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 170ms ease, color 170ms ease;
+}
+
+.signup-go:hover { background: transparent; color: var(--ink); }
 
 /* ---------- confirmation ---------- */
 
@@ -916,12 +946,6 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
         <input type="text" id="name" name="name" autocomplete="name" placeholder="First and Last Name" required>
         <p class="err" id="err"></p>
         <button class="pay" type="submit" id="payBtn">Checkout</button>
-
-        <div class="signup">
-          <label class="signup-line" for="email">Want $5 on ES30 Cafe? Enter your email for a chance to win!</label>
-          <input type="email" id="email" name="email" autocomplete="email"
-                 placeholder="you@example.com">
-        </div>
       </form>
     </aside>
 
@@ -930,6 +954,8 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
   </div>
 </div>
 
+</head>
+<body>
 <script>
 const PREVIEW_DATA = {"menu":[{"section":"Drinks","groups":[{"title":"","items":[{"id":"celsius","name":"Celsius","price":500,"available":12},{"id":"waiter","name":"Bottle of WAiTER","price":1000,"desc":"A bottle of water with AI in it to give you the perfect level of hydration.","available":12}]}]},{"section":"Snacks","groups":[{"title":"Sweet","items":[{"id":"cookies-2","name":"2 Chocolate Chip Cookies","price":500,"available":12},{"id":"oreos","name":"Oreos","price":100,"available":12}]},{"title":"Savory","items":[{"id":"doritos-cool-ranch","name":"Cool Ranch Doritos","price":300,"available":12},{"id":"doritos-nacho","name":"Nacho Cheese Doritos","price":300,"available":12},{"id":"cheetos-crunchy","name":"Cheetos Crunchy","price":300,"available":12},{"id":"popcorn-white-ched","name":"White Cheddar Popcorn","price":300,"available":12},{"id":"lays-classic","name":"Classic Lays","price":300,"available":12},{"id":"sunchips-harvest","name":"Harvest Cheddar Sun Chips","price":300,"available":12}]}]}],"site":{"hours":"","address":"","email":"","footnote":""},"currency":"usd","demo":true};
 
@@ -1257,7 +1283,6 @@ el('checkoutForm').addEventListener('submit', (e) => {
     return { id, name: item.name, qty, total: item.price * qty };
   });
 
-  // No server here, so an address typed in the signup goes nowhere.
   // Take the stock, the way the server would once the order is paid.
   for (const line of lines) {
     state.items[line.id].available = Math.max(0, state.items[line.id].available - line.qty);
@@ -1275,7 +1300,21 @@ function showTicket(order) {
     <ul class="ticket-items">
       ${order.lines.map((l) => `<li><span>${l.qty} &times; ${esc(l.name)}</span><span>${money(l.total)}</span></li>`).join('')}
     </ul>
-    <div class="ticket-total"><span>Total</span><span>${money(order.total)}</span></div>`;
+    <div class="ticket-total"><span>Total</span><span>${money(order.total)}</span></div>
+    <form class="signup" id="signup">
+      <label class="signup-line" for="email">Want $5 on ES30 Cafe? Enter your email for a chance to win!</label>
+      <div class="signup-row">
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        <button type="submit" class="signup-go">Enter</button>
+      </div>
+    </form>`;
+
+  // No server in this build, so the entry is acknowledged and goes no further.
+  el('confirmScreen').querySelector('#signup').addEventListener('submit', (e) => {
+    e.preventDefault();
+    e.target.innerHTML = '<p class="signup-line">You are in. Good luck!</p>';
+  });
+
   el('confirmScreen').hidden = false;
 }
 
@@ -1283,3 +1322,6 @@ buildRibbons();
 loadMenu().then(() => { restore(); renderCart(); });
 
 </script>
+
+</body>
+</html>

@@ -532,22 +532,29 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 
 .demo-note { text-align: center; font-size: 12px; opacity: 0.6; margin-top: 10px; }
 
-/* Optional, and clearly separate from the order itself. */
+/* The giveaway, offered once the order is placed. Clearly an extra, sitting
+   under the receipt rather than in the way of paying. */
 .signup {
-  margin-top: 20px;
-  padding-top: 16px;
+  width: 100%;
+  max-width: 340px;
+  margin: 26px auto 0;
+  padding-top: 20px;
   border-top: 2px dotted var(--dot);
 }
 
 .signup-line {
   font-size: 14px;
   line-height: 1.45;
-  opacity: 0.8;
-  margin: 0 0 8px;
+  opacity: 0.85;
+  margin: 0 0 10px;
+  text-align: center;
 }
 
+.signup-row { display: flex; gap: 8px; }
+
 .signup input[type="email"] {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 11px 14px;
   border: 2.5px solid var(--hair);
   border-radius: 12px;
@@ -559,6 +566,22 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 }
 
 .signup input[type="email"]:focus { outline: none; border-color: var(--ink); }
+
+.signup-go {
+  flex: none;
+  padding: 11px 20px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--hand);
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 170ms ease, color 170ms ease;
+}
+
+.signup-go:hover { background: transparent; color: var(--ink); }
 
 /* ---------- confirmation ---------- */
 

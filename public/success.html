@@ -72,7 +72,29 @@ function render(order) {
     <ul class="ticket-items">
       ${order.lines.map((l) => `<li><span>${l.qty} &times; ${l.name}</span><span>${money(l.total, order.currency)}</span></li>`).join('')}
     </ul>
-    <div class="ticket-total"><span>Total</span><span>${money(order.total, order.currency)}</span></div>`;
+    <div class="ticket-total"><span>Total</span><span>${money(order.total, order.currency)}</span></div>
+    <form class="signup" id="signup">
+      <label class="signup-line" for="email">Want $5 on ES30 Cafe? Enter your email for a chance to win!</label>
+      <div class="signup-row">
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        <button type="submit" class="signup-go">Enter</button>
+      </div>
+    </form>`;
+
+  document.getElementById('signup').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    if (!email) return;
+    try {
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+    } catch { /* the order is already placed; the entry is the only thing lost */ }
+    document.getElementById('signup').innerHTML =
+      '<p class="signup-line">You are in. Good luck!</p>';
+  });
   document.title = `Order ${order.orderNumber} · ES30 Cafe`;
 }
 

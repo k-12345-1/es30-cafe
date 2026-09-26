@@ -71,7 +71,6 @@ el('checkoutForm').addEventListener('submit', (e) => {
     return { id, name: item.name, qty, total: item.price * qty };
   });
 
-  // No server here, so an address typed in the signup goes nowhere.
   // Take the stock, the way the server would once the order is paid.
   for (const line of lines) {
     state.items[line.id].available = Math.max(0, state.items[line.id].available - line.qty);
@@ -89,7 +88,21 @@ function showTicket(order) {
     <ul class="ticket-items">
       \${order.lines.map((l) => \`<li><span>\${l.qty} &times; \${esc(l.name)}</span><span>\${money(l.total)}</span></li>\`).join('')}
     </ul>
-    <div class="ticket-total"><span>Total</span><span>\${money(order.total)}</span></div>\`;
+    <div class="ticket-total"><span>Total</span><span>\${money(order.total)}</span></div>
+    <form class="signup" id="signup">
+      <label class="signup-line" for="email">Want $5 on ES30 Cafe? Enter your email for a chance to win!</label>
+      <div class="signup-row">
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        <button type="submit" class="signup-go">Enter</button>
+      </div>
+    </form>\`;
+
+  // No server in this build, so the entry is acknowledged and goes no further.
+  el('confirmScreen').querySelector('#signup').addEventListener('submit', (e) => {
+    e.preventDefault();
+    e.target.innerHTML = '<p class="signup-line">You are in. Good luck!</p>';
+  });
+
   el('confirmScreen').hidden = false;
 }
 
@@ -134,17 +147,30 @@ ${app}${tail}
 </script>
 `;
 
-const pagesNote = `<title>ES30 Cafe</title>
+// The artifact host wraps its file in a document of its own. GitHub Pages
+// serves the file as given, so the Pages copy has to be a complete page: no
+// viewport meta means a phone lays it out at ~980px and shrinks everything.
+const pagesDoc = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFEBAF">
+<meta name="description" content="Order snacks and drinks from ES30 Cafe.">
 <!--
   Static build of the storefront, served by GitHub Pages.
-  Checkout is simulated, the email signup goes nowhere and stock resets on
+  Checkout is simulated, the giveaway entry goes nowhere and stock resets on
   reload, because a static host cannot run the Node server.
-  For real payments, a real mailing list and real stock, run the app:
+  For real payments, real entries and real stock, run the app:
   npm install && npm start   (see README.md)
--->`;
+-->
+${page.replace(/\n?<script>/, '\n</head>\n<body>\n<script>')}
+</body>
+</html>
+`;
 
 fs.mkdirSync('docs', { recursive: true });
-fs.writeFileSync('docs/index.html', page.replace('<title>ES30 Cafe</title>', pagesNote));
+fs.writeFileSync('docs/index.html', pagesDoc);
 
 const out = process.argv[2];
 if (out) fs.writeFileSync(out, page);

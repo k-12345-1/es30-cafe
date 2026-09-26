@@ -118,13 +118,14 @@ The staff page then asks for that code and remembers it in the browser.
 
 ## Mailing list
 
-Under the Checkout button is an optional line: "Want $5 on ES30 Cafe? Enter your
-email for a chance to win!" An address typed there is saved to `subscribers.json`,
+On the confirmation screen, under the receipt: "Want $5 on ES30 Cafe? Enter your
+email for a chance to win!" It sits there rather than at checkout so it is never
+between a customer and paying. An address is saved to `subscribers.json`,
 lowercased and de-duplicated, with the date it was added.
 
-It never gets in the way of an order. A malformed address is dropped quietly and
-a failure writing the file is logged, not raised, so nobody is ever stopped from
-paying because of the signup.
+`POST /api/subscribe` always answers ok. Someone who has already paid should
+never see an error over an optional extra; a malformed address is dropped
+quietly and a file error is logged, not raised.
 
 Read the list from the running site at `/api/subscribers`, which is behind the
 same staff check as the stock page. `subscribers.json` is not in git.
@@ -177,14 +178,20 @@ with a real database.
 ## The GitHub Pages copy
 
 `docs/index.html` is a standalone build served at the Pages URL. It has no
-server, so checkout is simulated and stock resets on reload. Rebuild it after
-changing the menu or the design:
+server, so checkout is simulated, giveaway entries go nowhere and stock resets
+on reload. Rebuild it after changing the menu or the design:
 
 ```bash
 node build-static.mjs
 ```
 
 Then commit and push; Pages redeploys on its own.
+
+The build writes two shapes from the same source. The preview copy is a fragment,
+because the artifact host wraps it in a document of its own. The Pages copy is a
+complete page with `<!doctype>`, `<head>` and a viewport meta, because Pages
+serves the file exactly as given: without that meta a phone lays the page out at
+about 980px and shrinks everything to fit.
 
 ## Before taking real money
 

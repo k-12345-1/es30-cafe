@@ -196,9 +196,6 @@ app.post('/api/checkout', async (req, res) => {
       return res.status(400).json({ error: 'Please enter the name for the order.' });
     }
 
-    // Saved outside the order write so a bad address cannot break checkout.
-    rememberEmail(req.body?.email);
-
     const result = await exclusive(async () => {
       const [stock, orders] = await Promise.all([readStock(), readOrders()]);
       const { lines, total } = priceCart(req.body?.cart, availability(stock, orders));
@@ -247,6 +244,13 @@ app.post('/api/checkout', async (req, res) => {
     console.error('checkout failed:', err);
     res.status(400).json({ error: err.message || 'Could not start checkout.' });
   }
+});
+
+// The giveaway signup on the confirmation screen. Always answers ok, so a
+// customer who has already paid never sees an error over an optional extra.
+app.post('/api/subscribe', async (req, res) => {
+  await rememberEmail(req.body?.email);
+  res.json({ ok: true });
 });
 
 /* ---------- confirmation ----------
