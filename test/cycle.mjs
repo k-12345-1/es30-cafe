@@ -4,7 +4,8 @@ import { execFileSync } from 'node:child_process';
 const src = (name) => execFileSync('sed', ['-n', `/^function ${name}/,/^}/p`, 'server.js']).toString();
 
 const probe = `
-  const BREAK_MINUTES = 10, GRACE_MINUTES = 5, OPENS_LEAD_MINUTES = 60, SOON_HOLD_MINUTES = 120;
+  const BREAK_MINUTES = 10, GRACE_MINUTES = 5, OPENS_LEAD_MINUTES = 60;
+  const SOON_HOLD_MINUTES = 120, CLOSED_SIGN_MINUTES = 120;
   const OPEN_WEEKDAY = 3, OPEN_HOUR = 12, OPEN_MINUTE = 0;
   ${src('cycle')}
   ${src('cafeState')}
@@ -14,7 +15,8 @@ const probe = `
   console.log(JSON.stringify({
     mode: s.mode,
     counting: s.target ? Math.round((s.target - at) / 60000) + ' min' : '-',
-    orders: s.ordersOpen
+    orders: s.ordersOpen,
+    clock: s.show
   }));
 `;
 
@@ -22,7 +24,8 @@ const run = (iso, brk = {}) => JSON.parse(execFileSync('node',
   ['-e', probe, iso, JSON.stringify(brk)], { env: { ...process.env, TZ: 'America/New_York' } }));
 
 const show = (label, r) =>
-  console.log(label.padEnd(42), r.mode.padEnd(8), '| counting', String(r.counting).padEnd(8), '| orders', r.orders ? 'OPEN' : 'shut');
+  console.log(label.padEnd(42), r.mode.padEnd(8), '| counting', String(r.counting).padEnd(8),
+    '| clock', r.clock ? 'on ' : 'off', '| orders', r.orders ? 'OPEN' : 'shut');
 
 console.log('\nNobody has pressed start yet\n');
 show('Wed 11:59 (before the hour)', run('2026-09-30T11:59:00'));

@@ -89,8 +89,8 @@ function cycle(at) {
      closing   the break is running
      closed    everything else
 
-   Orders are taken only while a break runs, and for a few minutes after it,
-   for whoever is already at the counter. */
+   Orders are taken from the moment the hour begins until a few minutes after
+   the break ends, so people can get their order in before the rush. */
 
 const SOON_HOLD_MINUTES = 120;
 // How long the closed sign stays up after a break, before the clock leaves the
@@ -138,7 +138,11 @@ function cafeState(brk = {}, at = Date.now()) {
     show,
     nextOpensAt,
     running,
-    ordersOpen: running || Boolean(ordersCloseAt && at < ordersCloseAt),
+    // Open from the moment the hour starts: through the countdown, through the
+    // wait for staff, through the break, and for a few minutes after it.
+    ordersOpen:
+      mode === 'opening' || mode === 'soon' || mode === 'closing' ||
+      Boolean(ordersCloseAt && at < ordersCloseAt),
     ordersCloseAt,
     countdownFrom,
     opensAt,
