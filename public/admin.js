@@ -97,7 +97,7 @@ function render() {
                value="${(item.price / 100).toFixed(2)}" aria-label="Price of ${esc(item.name)} in dollars">
       </span>
       <span class="stock-money">
-        <span class="stock-cap">have</span>
+        <span class="stock-cap">inventory</span>
         <input class="stock-input-qty" type="text" name="${item.id}" inputmode="numeric"
                value="${item.onHand}" aria-label="How many ${esc(item.name)}">
       </span>
@@ -114,8 +114,9 @@ function render() {
     data.sections.flatMap((s) => s.groups.map((g) => g.title).filter(Boolean))
   )].map((t) => `<option value="${esc(t)}"></option>`).join('');
 
+  const waiting = data.orders.filter((o) => !o.fulfilled).length;
   el('ordersNote').textContent = data.orders.length
-    ? `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}, newest first.`
+    ? `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}, newest first. ${waiting ? `${waiting} still to hand over.` : 'All handed over.'}`
     : 'No orders yet.';
 
   // One heading per day, with that day's takings beside it, so a sale can be
@@ -134,9 +135,14 @@ function render() {
       <span class="day-sum">${day.orders.length} order${day.orders.length === 1 ? '' : 's'} &middot; ${money(day.orders.reduce((sum, o) => sum + o.total, 0))}</span>
     </li>
     ${day.orders.map((order) => `
-      <li>
+      <li class="order${order.fulfilled ? ' done' : ''}">
+        <label class="tick">
+          <input type="checkbox" data-order="${order.id}" ${order.fulfilled ? 'checked' : ''}
+                 aria-label="Order ${order.orderNumber} handed over">
+          <span class="tick-box" aria-hidden="true"></span>
+        </label>
         <span class="list-main">
-          <strong>#${order.orderNumber}</strong> ${esc(order.name)}
+          <span class="order-who"><strong>#${order.orderNumber}</strong> ${esc(order.name)}</span>
           <span class="list-sub">${order.lines.map((l) => `${l.qty} &times; ${esc(l.name)}`).join(', ')}</span>
         </span>
         <span class="list-right">${money(order.total)}<br>${at(order.createdAt)}</span>
@@ -173,6 +179,39 @@ function when(value) {
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+/* ---------- handing orders over ----------
+   The tick is saved as it is clicked, so two people working the counter see
+   the same list. */
+
+el('orderList').addEventListener('change', async (e) => {
+  const box = e.target.closest('input[type="checkbox"][data-order]');
+  if (!box) return;
+
+  const row = box.closest('li');
+  const fulfilled = box.checked;
+  row.classList.toggle('done', fulfilled);
+
+  try {
+    const res = await fetch(`/api/orders/${box.dataset.order}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...auth() },
+      body: JSON.stringify({ fulfilled })
+    });
+    if (!res.ok) throw new Error('Could not save that.');
+
+    const order = data.orders.find((o) => o.id === box.dataset.order);
+    if (order) order.fulfilled = fulfilled;
+    const waiting = data.orders.filter((o) => !o.fulfilled).length;
+    el('ordersNote').textContent =
+      `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}, newest first. ${waiting ? `${waiting} still to hand over.` : 'All handed over.'}`;
+  } catch (err) {
+    // Put it back the way it was rather than showing a tick that did not save.
+    box.checked = !fulfilled;
+    row.classList.toggle('done', !fulfilled);
+    say(err.message, true);
+  }
+});
 
 /* ---------- stock ---------- */
 

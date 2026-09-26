@@ -301,6 +301,30 @@ app.post('/api/subscribe', async (req, res) => {
 // A tidier way in for staff than typing the file name.
 app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
+// Ticking an order off. Nothing else about the order can be changed here: the
+// name, the lines and the total are what was paid for.
+app.patch('/api/orders/:id', staffOnly, async (req, res) => {
+  try {
+    const done = Boolean(req.body?.fulfilled);
+
+    await exclusive(async () => {
+      const orders = await readJson(ORDERS_FILE, {});
+      const order = orders[req.params.id];
+      if (!order) throw new Error('No such order.');
+
+      order.fulfilled = done;
+      if (done) order.fulfilledAt = Date.now();
+      else delete order.fulfilledAt;
+
+      await writeJson(ORDERS_FILE, orders);
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 /* ---------- live updates ----------
    Open browsers hold a stream, so a change made on the staff page reaches the
    customers already looking at the menu without them reloading. */
@@ -409,7 +433,9 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
   ]);
   const available = availability(items, stock, orders);
 
-  const paid = Object.values(orders).filter((o) => o.paid && o.orderNumber);
+  const paid = Object.entries(orders)
+    .filter(([, o]) => o.paid && o.orderNumber)
+    .map(([id, o]) => ({ ...o, id }));
   const today = localDay();
 
   res.json({
@@ -443,11 +469,13 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
       .slice(0, 100)
       .map((o) => ({
+        id: o.id,
         orderNumber: o.orderNumber,
         day: o.day,
         name: o.name,
         total: o.total,
         createdAt: o.createdAt,
+        fulfilled: Boolean(o.fulfilled),
         lines: o.lines.map((l) => ({ name: l.name, qty: l.qty }))
       })),
     subscribers: subscribers.slice().reverse()

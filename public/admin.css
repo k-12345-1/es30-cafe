@@ -340,3 +340,59 @@
 }
 
 .day-sum { font-size: 13px; opacity: 0.6; white-space: nowrap; }
+
+/* ---------- handing orders over ---------- */
+
+.list li.order { align-items: center; gap: 12px; }
+
+.order-who { display: block; }
+
+/* A hand-drawn box rather than the browser's, to match the rest. */
+.tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.tick input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tick-box {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--hair);
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.tick-box::after {
+  content: "";
+  width: 11px;
+  height: 6px;
+  border-left: 2.5px solid var(--cream);
+  border-bottom: 2.5px solid var(--cream);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.tick input:checked + .tick-box {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.tick input:checked + .tick-box::after { opacity: 1; }
+.tick input:focus-visible + .tick-box { border-color: var(--ink); }
+
+/* Handed over: still there to be checked, but out of the way of what is not. */
+.list li.order.done .list-main,
+.list li.order.done .list-right { opacity: 0.45; }
+
+.list li.order.done .order-who { text-decoration: line-through; }
