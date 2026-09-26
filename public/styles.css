@@ -5,6 +5,8 @@
   --ink: #2F6A79;
   --hair: rgba(47, 106, 121, 0.3);
   --dot: rgba(47, 106, 121, 0.45);
+  /* The one warm note in the palette, kept for stock warnings only. */
+  --alert: #C0392B;
 
   /* One handwriting face throughout, as in the reference. Headings are the same
      letterforms made heavier with a stroke rather than a second family, which is
@@ -320,18 +322,21 @@ body {
 
 .row-qty button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* Stock notes: sold out in place of the control, and a quiet line under the
-   item when it is down to the last few. */
+/* Stock notes: sold out in place of the control, and a line under the item
+   when it is down to the last few. Both in red, and heavy enough to catch the
+   eye before the customer taps the plus. */
 .sold-out {
   font-size: 14px;
-  opacity: 0.55;
+  color: var(--alert);
+  -webkit-text-stroke: 0.5px var(--alert);
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
 .row-stock {
   font-size: 12.5px;
-  opacity: 0.6;
+  color: var(--alert);
+  -webkit-text-stroke: 0.4px var(--alert);
   letter-spacing: 0.02em;
   margin: 3px 0 0;
 }

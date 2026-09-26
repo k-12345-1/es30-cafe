@@ -148,7 +148,7 @@ function renderMenuQuantities() {
     ctl.dataset.key = key;
 
     if (left <= 0 && qty === 0) {
-      ctl.innerHTML = '<span class="sold-out">sold out</span>';
+      ctl.innerHTML = '<span class="sold-out">sold out :(</span>';
       continue;
     }
 
