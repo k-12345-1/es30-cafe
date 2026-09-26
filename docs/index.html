@@ -1046,15 +1046,18 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 /* Before the cafe opens: the same cards, quietly. Dimming the card rather than
    its halves keeps a turning leaf the same shade as the face behind it, and
    leaves an untouched leaf at zero opacity so it cannot ghost through. */
-.flipclock.resting .flip { opacity: 0.6; }
-.flipclock.resting .flip-label { opacity: 0.45; }
+.flipclock.resting .flip { opacity: 0.8; }
 
 .flip-label {
   margin: 0 0 8px;
   font-size: 13px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  opacity: 0.6;
+  /* One handwriting weight only, so the line is made bold with a stroke, as
+     the headings above it are. */
+  font-weight: 700;
+  -webkit-text-stroke: 0.7px var(--ink);
+  opacity: 0.9;
 }
 
 .flip-row {
@@ -1095,6 +1098,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
   font-size: 34px;
   line-height: 52px;
   color: var(--cream);
+  -webkit-text-stroke: 0.9px var(--cream);
 }
 
 /* The two halves of the card as it rests. */
@@ -1218,7 +1222,7 @@ body.shut .row-desc { opacity: 0.5; }
 .flipclock.over .flip-label {
   opacity: 1;
   color: var(--alert);
-  -webkit-text-stroke: 0.3px var(--alert);
+  -webkit-text-stroke: 0.7px var(--alert);
 }
 
 @media (prefers-reduced-motion: reduce) {

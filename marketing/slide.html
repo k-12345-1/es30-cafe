@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ES30 Cafe slide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFEBAF;
+    --ink: #2F6A79;
+    --hand: "Architects Daughter", cursive;
+    --banner: "Archivo Narrow", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 1920px; height: 1080px;
+    background: var(--cream); color: var(--ink);
+    font-family: var(--hand);
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 88px 110px;
+    column-gap: 70px;
+  }
+
+  /* left: the sign, the goods, the line */
+  .left { display: flex; flex-direction: column; align-items: center; gap: 54px; }
+  .banner { width: 700px; }
+  .goods { width: 430px; }
+  .tag {
+    font-size: 46px; text-align: center; line-height: 1.35;
+    -webkit-text-stroke: 0.7px var(--ink);
+  }
+
+  /* right: the thing to point a phone at */
+  .right { display: flex; flex-direction: column; align-items: center; gap: 30px; }
+  .scan {
+    font-family: var(--banner);
+    font-size: 40px; letter-spacing: 0.2em; text-transform: uppercase;
+  }
+  .qr-card {
+    border: 7px solid var(--ink);
+    border-radius: 34px;
+    padding: 26px;
+    background: var(--cream);
+    line-height: 0;
+  }
+  .qr-card img { width: 540px; height: 540px; }
+  .url { font-size: 38px; -webkit-text-stroke: 0.4px var(--ink); }
+  .when {
+    font-size: 42px; text-align: center; line-height: 1.35;
+    -webkit-text-stroke: 0.7px var(--ink);
+  }
+  .when b { -webkit-text-stroke: 1.1px var(--ink); font-weight: normal; }
+</style>
+<div class="left">
+  <img class="banner" src="../public/banner.png" alt="ES30 Cafe">
+  <img class="goods" src="../public/drink.png" alt="">
+  <p class="tag">Snacks and drinks for ES30.</p>
+</div>
+<div class="right">
+  <p class="scan">Scan to order</p>
+  <div class="qr-card"><img src="qr.png" alt="QR code to es30-cafe.onrender.com"></div>
+  <p class="url">es30-cafe.onrender.com</p>
+  <p class="when">Open <b>Wednesdays</b> at the break.<br>Order ahead, pick up at the counter.</p>
+</div>
