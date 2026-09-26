@@ -17,7 +17,7 @@
 
 body {
   margin: 0;
-  background: var(--blue);
+  background: var(--cream);
   color: var(--ink);
   font-family: var(--hand);
   -webkit-font-smoothing: antialiased;
@@ -30,18 +30,19 @@ body {
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 26px;
+  padding: 0;
 }
 
+/* The cream runs to the edges of the screen. This is a column for the content
+   to sit in, not a card on a different ground, so it has no edge of its own. */
 .card {
   position: relative;
   width: min(440px, 100%);
-  height: min(880px, calc(100vh - 52px));
-  height: min(880px, calc(100svh - 52px));
+  height: 100vh;
+  height: 100svh;
+  max-height: 880px;
   background: var(--cream);
-  border-radius: 42px;
   overflow: hidden;
-  box-shadow: 0 26px 60px rgba(20, 58, 67, 0.35);
 }
 
 .card-scroll {
@@ -336,7 +337,7 @@ body {
   font-family: var(--hand);
   font-size: 15px;
   cursor: pointer;
-  box-shadow: 0 10px 26px rgba(20, 58, 67, 0.4);
+  box-shadow: 0 8px 22px rgba(47, 106, 121, 0.26);
   transition: transform 320ms cubic-bezier(.2,.8,.2,1), visibility 320ms;
   z-index: 40;
   display: flex;
@@ -531,6 +532,34 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 
 .demo-note { text-align: center; font-size: 12px; opacity: 0.6; margin-top: 10px; }
 
+/* Optional, and clearly separate from the order itself. */
+.signup {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px dotted var(--dot);
+}
+
+.signup-line {
+  font-size: 14px;
+  line-height: 1.45;
+  opacity: 0.8;
+  margin: 0 0 8px;
+}
+
+.signup input[type="email"] {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 15px;
+  margin: 0;
+}
+
+.signup input[type="email"]:focus { outline: none; border-color: var(--ink); }
+
 /* ---------- confirmation ---------- */
 
 .confirm {
@@ -653,7 +682,7 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 
 html {
   scrollbar-width: thin;
-  scrollbar-color: var(--ink) var(--blue);
+  scrollbar-color: var(--ink) var(--cream);
 }
 
 .card-scroll,
@@ -683,20 +712,13 @@ html {
 }
 
 html::-webkit-scrollbar { width: 12px; }
-html::-webkit-scrollbar-track { background: var(--blue); }
+html::-webkit-scrollbar-track { background: var(--cream); }
 html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 
 /* ---------- phone: the card becomes the whole screen ---------- */
 
 @media (max-width: 520px) {
-  .page { padding: 0; }
-  .card {
-    width: 100%;
-    height: 100vh;
-    height: 100svh;
-    border-radius: 0;
-    box-shadow: none;
-  }
+  .card { width: 100%; }
   .screen { padding: 26px 20px 34px; }
   .menu { padding-bottom: 120px; }
   .sheet { padding: 26px 20px calc(24px + env(safe-area-inset-bottom)); }

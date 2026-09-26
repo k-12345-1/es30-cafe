@@ -309,6 +309,7 @@ el('checkoutForm').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
+        email: el('email').value.trim(),
         cart: [...state.cart].map(([id, qty]) => ({ id, qty }))
       })
     });

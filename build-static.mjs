@@ -71,6 +71,7 @@ el('checkoutForm').addEventListener('submit', (e) => {
     return { id, name: item.name, qty, total: item.price * qty };
   });
 
+  // No server here, so an address typed in the signup goes nowhere.
   // Take the stock, the way the server would once the order is paid.
   for (const line of lines) {
     state.items[line.id].available = Math.max(0, state.items[line.id].available - line.qty);
@@ -136,8 +137,9 @@ ${app}${tail}
 const pagesNote = `<title>ES30 Cafe</title>
 <!--
   Static build of the storefront, served by GitHub Pages.
-  Checkout is simulated in the page and stock resets on reload, because a static
-  host cannot run the Node server. For real payments and real stock, run the app:
+  Checkout is simulated, the email signup goes nowhere and stock resets on
+  reload, because a static host cannot run the Node server.
+  For real payments, a real mailing list and real stock, run the app:
   npm install && npm start   (see README.md)
 -->`;
 

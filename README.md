@@ -116,6 +116,19 @@ ADMIN_TOKEN=some-long-random-string
 
 The staff page then asks for that code and remembers it in the browser.
 
+## Mailing list
+
+Under the Checkout button is an optional line: "Love ES30 Cafe? Enter your email
+to stay updated." An address typed there is saved to `subscribers.json`,
+lowercased and de-duplicated, with the date it was added.
+
+It never gets in the way of an order. A malformed address is dropped quietly and
+a failure writing the file is logged, not raised, so nobody is ever stopped from
+paying because of the signup.
+
+Read the list from the running site at `/api/subscribers`, which is behind the
+same staff check as the stock page. `subscribers.json` is not in git.
+
 ## Editing the menu
 
 `MENU` in `menu.js` is sections, each holding groups, each holding items:
@@ -153,6 +166,7 @@ with a real database.
 - `server.js` — Express server, stock, Stripe session creation, order lookup
 - `menu.js` — the menu, prices and starting stock
 - `stock.json` — the live count per item, written by the server (not in git)
+- `subscribers.json` — mailing list signups (not in git)
 - `build-static.mjs` — builds `docs/index.html`, the static copy for GitHub Pages
 - `public/index.html` — splash and menu
 - `public/app.js` — cart, sheet, checkout

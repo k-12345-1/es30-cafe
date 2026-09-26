@@ -24,6 +24,7 @@ const stripe = DEMO ? null : new Stripe(SECRET);
 
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 const STOCK_FILE = path.join(__dirname, 'stock.json');
+const EMAILS_FILE = path.join(__dirname, 'subscribers.json');
 
 const app = express();
 app.use(express.json());
@@ -73,6 +74,28 @@ async function readStock() {
 }
 
 const writeStock = (stock) => fs.writeFile(STOCK_FILE, JSON.stringify(stock, null, 2));
+
+/* ---------- mailing list ----------
+   Optional, and kept apart from the order. A bad address, or a failure writing
+   the file, must never stop someone paying for their snack. */
+
+const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+async function rememberEmail(raw) {
+  const email = String(raw || '').trim().toLowerCase();
+  if (!email || email.length > 254 || !LOOKS_LIKE_EMAIL.test(email)) return;
+
+  try {
+    await exclusive(async () => {
+      const list = await readJson(EMAILS_FILE, []);
+      if (list.some((entry) => entry.email === email)) return;
+      list.push({ email, addedAt: new Date().toISOString() });
+      await fs.writeFile(EMAILS_FILE, JSON.stringify(list, null, 2));
+    });
+  } catch (err) {
+    console.error('could not save email:', err);
+  }
+}
 
 /* ---------- availability ----------
    On-hand count minus whatever unpaid checkouts are still holding. An unpaid
@@ -172,6 +195,9 @@ app.post('/api/checkout', async (req, res) => {
     if (name.length < 1 || name.length > 60) {
       return res.status(400).json({ error: 'Please enter the name for the order.' });
     }
+
+    // Saved outside the order write so a bad address cannot break checkout.
+    rememberEmail(req.body?.email);
 
     const result = await exclusive(async () => {
       const [stock, orders] = await Promise.all([readStock(), readOrders()]);
@@ -288,6 +314,11 @@ function staffOnly(req, res, next) {
     error: 'Set ADMIN_TOKEN in .env to change stock from another machine.'
   });
 }
+
+// The list, for whoever sends the updates.
+app.get('/api/subscribers', staffOnly, async (_req, res) => {
+  res.json({ subscribers: await readJson(EMAILS_FILE, []) });
+});
 
 app.get('/api/stock', staffOnly, async (_req, res) => {
   const [stock, orders] = await Promise.all([readStock(), readOrders()]);
