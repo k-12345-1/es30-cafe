@@ -1,0 +1,747 @@
+:root {
+  /* The swatch pair. The card is the pale yellow, the ground and ink are blue. */
+  --cream: #FFEBAF;
+  --blue: #4C9DB0;
+  --ink: #2F6A79;
+  --hair: rgba(47, 106, 121, 0.3);
+  --dot: rgba(47, 106, 121, 0.45);
+
+  /* One handwriting face throughout, as in the reference. Headings are the same
+     letterforms made heavier with a stroke rather than a second family, which is
+     what keeps the menu looking hand-lettered by one person. */
+  --hand: "Architects Daughter", "Bradley Hand", cursive;
+  --banner: "Archivo Narrow", "Helvetica Neue", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--blue);
+  color: var(--ink);
+  font-family: var(--hand);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- the phone card ---------- */
+
+.page {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 26px;
+}
+
+.card {
+  position: relative;
+  width: min(440px, 100%);
+  height: min(880px, calc(100vh - 52px));
+  height: min(880px, calc(100svh - 52px));
+  background: var(--cream);
+  border-radius: 42px;
+  overflow: hidden;
+  box-shadow: 0 26px 60px rgba(20, 58, 67, 0.35);
+}
+
+.card-scroll {
+  height: 100%;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen { padding: 34px 28px 40px; }
+
+/* Only one screen is in the card at a time, so the opening screen and its
+   button are not visible behind the menu. */
+.screen.gone { display: none; }
+
+.menu.enter { animation: screenIn 420ms cubic-bezier(.2,.8,.2,1) both; }
+
+@keyframes screenIn {
+  from { transform: translateY(36px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ---------- notched ribbon logo ---------- */
+
+.ribbon {
+  --notch: polygon(0% 0%, 100% 0%, 88% 50%, 100% 100%, 0% 100%, 12% 50%);
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+  background: var(--ink);
+  clip-path: var(--notch);
+  padding: 2px;
+}
+
+.ribbon .r2 { background: var(--cream); clip-path: var(--notch); padding: 3px; display: block; }
+.ribbon .r3 { background: var(--ink);   clip-path: var(--notch); padding: 2px; display: block; }
+
+.ribbon .r4 {
+  background: var(--cream);
+  clip-path: var(--notch);
+  display: block;
+  padding: 10px 52px;
+  font-family: var(--banner);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--ink);
+}
+
+.ribbon-sm .r4 { padding: 7px 32px; font-size: 15px; }
+
+/* ---------- screen one ---------- */
+
+.splash {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Even air above, between and below, rather than the banner and the button
+     pinned to the card's edges with a void in the middle. */
+  justify-content: space-evenly;
+  text-align: center;
+}
+
+.art { color: var(--ink); display: block; }
+
+.art-splash {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.ghost-btn {
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.5px var(--ink);
+  font-size: 27px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 10px 6px 4px;
+  border-bottom: 3px solid transparent;
+  transition: border-color 200ms ease, transform 200ms ease;
+}
+
+.ghost-btn:hover { border-bottom-color: var(--ink); transform: translateY(-2px); }
+
+/* ---------- screen two ---------- */
+
+/* The heading's own line box adds about 10px of leading above the letters, so
+   36px of padding puts the DRINKS letters 46px down from the top of the card. */
+.menu {
+  padding-top: 36px;
+  padding-bottom: 124px;
+}
+
+.section-title {
+  font-family: var(--hand);
+  -webkit-text-stroke: 1.1px var(--ink);
+  font-size: 31px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 34px 0 4px;
+}
+
+.menu .section-title:first-of-type { margin-top: 0; }
+
+.group-title {
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.4px var(--ink);
+  font-size: 21px;
+  margin: 18px 0 6px;
+}
+
+/* Item row. The name, leader and price share a baseline inside .row-main; the
+   add control centers against that text block rather than the whole row, so the
+   plus sits level with the item name. */
+.row { padding: 5px 0; }
+
+.row-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  /* A long name wraps on a narrow screen; aligning to the last baseline keeps
+     the dots and the price on the final line rather than the first. */
+  align-items: baseline;
+  align-items: last baseline;
+  gap: 8px;
+}
+
+.row-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 17px;
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* The description wraps on its own line under the item, so a long one never
+   squeezes the name, the leader or the price. */
+.row-desc {
+  font-size: 12.5px;
+  line-height: 1.45;
+  opacity: 0.62;
+  margin: 4px 0 0;
+  max-width: 34ch;
+}
+
+/* Empty span whose bottom edge is its baseline, so the dots land on the same
+   line the item name and the price sit on. */
+.leader {
+  flex: 1;
+  border-bottom: 2.5px dotted var(--dot);
+  min-width: 8px;
+}
+
+.row-price {
+  font-size: 17px;
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.6px var(--ink);
+  white-space: nowrap;
+}
+
+.row-ctl {
+  flex: none;
+  min-width: 82px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.add {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 170ms ease, color 170ms ease, transform 130ms ease;
+}
+
+.add:hover  { background: var(--ink); color: var(--cream); }
+.add:active { transform: scale(0.88); }
+
+/* Stepper that replaces the plus once the item is in the cart. */
+.row-qty {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.row-qty.pop { animation: pop 250ms cubic-bezier(.2,.8,.2,1); }
+
+@keyframes pop {
+  from { transform: scale(0.82); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+.row-qty button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--cream);
+  font-family: var(--hand);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.row-qty button:hover { background: rgba(255, 235, 175, 0.24); }
+
+.row-qty span {
+  min-width: 20px;
+  text-align: center;
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.footnote {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 26px 0 0;
+  opacity: 0.85;
+}
+
+.foot { margin-top: 30px; text-align: center; }
+
+.foot-line { font-size: 12px; opacity: 0.7; margin: 4px 0; }
+.foot-line:empty { display: none; }
+
+/* ---------- cart bar, pinned inside the card ---------- */
+
+.cart-bar {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 30px;
+  transform: translateY(200%);
+  visibility: hidden;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 999px;
+  padding: 12px 12px 12px 22px;
+  font-family: var(--hand);
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(20, 58, 67, 0.4);
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1), visibility 320ms;
+  z-index: 40;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cart-bar.show { transform: translateY(0); visibility: visible; }
+
+.cart-bar-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cart-bar-cta {
+  background: var(--cream);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.4px var(--ink);
+  font-size: 14px;
+}
+
+/* ---------- cart sheet, inside the card ---------- */
+
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 58, 67, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease;
+  z-index: 50;
+}
+
+.sheet-scrim.open { opacity: 1; pointer-events: auto; }
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  background: var(--cream);
+  transform: translateY(101%);
+  transition: transform 340ms cubic-bezier(.2,.8,.2,1);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 28px 28px;
+}
+
+.sheet.open { transform: none; }
+
+.sheet-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.sheet-top h3 {
+  -webkit-text-stroke: 1px var(--ink);
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 27px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.close {
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+/* Pull the list into the sheet's padding so its scrollbar sits beside the
+   content instead of on top of the quantity buttons. */
+.cart-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+  margin-right: -10px;
+}
+
+.cart-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 2px dotted var(--dot);
+  align-items: center;
+}
+
+.cart-line-name { font-size: 16px; }
+.cart-line-sub  { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+
+.qty { display: flex; align-items: center; gap: 9px; }
+
+.qty button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--hair);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--hand);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.qty button:hover { background: rgba(47, 106, 121, 0.12); }
+
+.qty span { min-width: 16px; text-align: center; font-family: var(--hand); font-weight: 700; }
+
+.empty { opacity: 0.55; font-size: 15px; padding: 40px 0; text-align: center; }
+
+.totals {
+  -webkit-text-stroke: 0.8px var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 16px 0 14px;
+  border-top: 3px solid var(--ink);
+  margin-top: 12px;
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 22px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  opacity: 0.75;
+  margin-bottom: 6px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2.5px solid var(--hair);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+input[type="text"]:focus { outline: none; border-color: var(--ink); }
+
+/* Outlined until there is a name to call out, solid once there is one, so the
+   button reads as ready only when it actually is. */
+.pay {
+  width: 100%;
+  padding: 15px;
+  border: 2.5px solid var(--hair);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.6px var(--ink);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.pay:hover:not(:disabled) { border-color: var(--ink); }
+
+.pay.ready {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--cream);
+  -webkit-text-stroke: 0.6px var(--cream);
+}
+
+.pay.ready:hover:not(:disabled) { background: var(--ink-hover, #26596a); }
+
+.pay:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.err { color: #9c4221; font-size: 13px; margin: 0 0 8px; min-height: 17px; }
+
+.demo-note { text-align: center; font-size: 12px; opacity: 0.6; margin-top: 10px; }
+
+/* ---------- confirmation ---------- */
+
+.confirm {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 34px 28px;
+}
+
+/* An SVG with a width but no height collapses inside a flex column, so pin the
+   ratio and keep it from shrinking. */
+.confirm .art {
+  width: 92px;
+  height: auto;
+  aspect-ratio: 11 / 10;
+  flex: none;
+  margin: 20px auto 14px;
+}
+
+/* Same guard for the splash drawing. */
+/* Real ratio of the drawing, plus a height cap so a short screen (landscape
+   phone, small laptop) shrinks the art instead of pushing the button off. */
+.art-splash {
+  flex: none;
+  /* viewBox is cropped to the drawing, so no dead space around it. */
+  aspect-ratio: 252 / 184;
+  height: auto;
+  max-height: 46svh;
+}
+
+.order-number .hash {
+  display: inline-block;
+  transform: translateY(0.135em);
+  margin-right: 0.05em;
+}
+
+.ticket-label { font-size: 17px; line-height: 1.2; opacity: 0.7; margin: 0; }
+
+.order-number {
+  -webkit-text-stroke: 0.9px var(--ink);
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: clamp(74px, 27vw, 132px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  /* The glyphs sit low in their line box, so pull the number up to close the
+     gap under the label rather than leaving the slack the box adds. */
+  margin: -0.14em 0 4px;
+}
+
+/* The thank-you is SVG text on an arc, so it curves over the order number. */
+.ticket-arc {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  aspect-ratio: 400 / 92;
+  flex: none;
+  margin: 0 auto 8px;
+  overflow: visible;
+}
+
+.ticket-arc text {
+  fill: var(--ink);
+  font-family: var(--hand);
+  stroke: var(--ink);
+  stroke-width: 0.5;
+}
+
+.ticket-note {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 26px 0 0;
+  max-width: 34ch;
+  opacity: 0.85;
+}
+
+.ticket-items {
+  list-style: none;
+  padding: 24px 0 0;
+  margin: 34px 0 0;
+  border-top: 2px dotted var(--dot);
+  width: 100%;
+  font-size: 17px;
+  text-align: left;
+}
+
+.ticket-items li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; }
+
+.ticket-total {
+  -webkit-text-stroke: 0.7px var(--ink);
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  border-top: 3px solid var(--ink);
+  margin-top: 18px;
+  padding-top: 18px;
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: 24px;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 26px;
+  font-family: var(--hand);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2.5px solid var(--hair);
+  padding-bottom: 3px;
+}
+
+/* ---------- scrollbars ---------- */
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) var(--blue);
+}
+
+.card-scroll,
+.cart-list,
+.sheet,
+.confirm {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) transparent;
+}
+
+.card-scroll::-webkit-scrollbar,
+.cart-list::-webkit-scrollbar,
+.sheet::-webkit-scrollbar,
+.confirm::-webkit-scrollbar { width: 8px; height: 8px; }
+
+.card-scroll::-webkit-scrollbar-track,
+.cart-list::-webkit-scrollbar-track,
+.sheet::-webkit-scrollbar-track,
+.confirm::-webkit-scrollbar-track { background: transparent; }
+
+.card-scroll::-webkit-scrollbar-thumb,
+.cart-list::-webkit-scrollbar-thumb,
+.sheet::-webkit-scrollbar-thumb,
+.confirm::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar { width: 12px; }
+html::-webkit-scrollbar-track { background: var(--blue); }
+html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
+
+/* ---------- phone: the card becomes the whole screen ---------- */
+
+@media (max-width: 520px) {
+  .page { padding: 0; }
+  .card {
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .screen { padding: 26px 20px 34px; }
+  .menu { padding-bottom: 120px; }
+  .sheet { padding: 26px 20px calc(24px + env(safe-area-inset-bottom)); }
+}
+
+/* Narrow phones: the longest item name, its price and the stepper have to fit
+   one line together, so step the type and the control down. */
+@media (max-width: 400px) {
+  .screen { padding: 22px 16px 30px; }
+  .sheet { padding: 22px 16px calc(20px + env(safe-area-inset-bottom)); }
+
+  .ribbon .r4 { font-size: 25px; padding: 9px 30px; }
+
+  .section-title { font-size: 27px; margin-top: 32px; }
+  .group-title { font-size: 19px; }
+
+  .row { gap: 8px; }
+  .row-name, .row-price { font-size: 15px; }
+  .row-ctl { min-width: 72px; }
+  .add { width: 28px; height: 28px; }
+  .row-qty button { width: 24px; height: 24px; }
+  .row-qty span { min-width: 16px; font-size: 13px; }
+
+  .cart-bar { font-size: 14px; padding: 11px 11px 11px 18px; gap: 9px; }
+  .ghost-btn { font-size: 24px; }
+}
+
+/* Short screens: trim the vertical rhythm so the whole splash, and the cart
+   sheet, still fit without scrolling. */
+@media (max-height: 620px) {
+  .screen { padding-top: 20px; padding-bottom: 22px; }
+  .art-splash { max-height: 40svh; margin: 4px auto; }
+  .ribbon .r4 { font-size: 24px; padding: 7px 30px; }
+  .ghost-btn { font-size: 22px; padding-top: 4px; }
+  .section-title { margin-top: 26px; font-size: 27px; }
+  .sheet { padding-top: 20px; padding-bottom: 20px; }
+  .sheet-top { margin-bottom: 10px; }
+  .sheet-top h3 { font-size: 30px; }
+  .totals { padding: 12px 0 10px; font-size: 20px; }
+  .pay { padding: 13px; }
+  .confirm { padding: 22px 20px; }
+  .order-number { font-size: 64px; margin: 4px 0 2px; }
+  .ticket-label { font-size: 15px; }
+  .ticket-note { font-size: 14px; margin-top: 14px; }
+  .ticket-items { font-size: 15px; margin-top: 18px; padding-top: 16px; }
+  .ticket-items li { padding: 5px 0; }
+  .ticket-total { font-size: 20px; margin-top: 12px; padding-top: 12px; }
+  .ticket-items { margin-top: 16px; padding-top: 14px; }
+}
+
+/* Below this height the fixed parts of the sheet (heading, total, name field,
+   button) leave the item list only a sliver, so scroll the whole sheet instead
+   of giving the list its own scroll area. */
+@media (max-height: 520px) {
+  .sheet { overflow-y: auto; }
+  .cart-list {
+    flex: none;
+    overflow: visible;
+    padding-right: 0;
+    margin-right: 0;
+  }
+  .cart-line { padding: 9px 0; }
+  .totals { margin-top: 8px; }
+}
+
+/* Landscape phones. Very little height, so the splash gets the minimum it needs. */
+@media (max-height: 440px) {
+  .screen { padding-top: 14px; padding-bottom: 16px; }
+  .art-splash { max-height: 34svh; margin: 2px auto; }
+  .ribbon .r4 { font-size: 20px; padding: 6px 24px; }
+  .ghost-btn { font-size: 19px; padding: 4px 6px 2px; }
+  .order-number { font-size: 52px; }
+  .ticket-note { margin-top: 10px; }
+  .sheet-top h3 { font-size: 25px; }
+  .totals { font-size: 18px; }
+}

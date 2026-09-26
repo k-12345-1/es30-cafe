@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Order confirmed &middot; ES30 Cafe</title>
+<meta name="theme-color" content="#4C9DB0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="page">
+  <div class="card">
+    <div class="confirm" id="ticket">
+      <p class="ticket-label">confirming your order</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const esc = (str) => String(str).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// The greeting is set on an arc. Long names get a smaller size so the text
+// keeps to the curve instead of running off the end of it.
+const arcSize = (text) => Math.max(13, Math.min(30, Math.round(368 / (text.length * 0.56))));
+
+const greetingArc = (name) => {
+  const text = `Thank you, ${esc(name)}!`;
+  return `
+    <svg class="ticket-arc" viewBox="0 0 400 92" role="img" aria-label="${text}">
+      <path id="greetArc" d="M18 84 Q200 24 382 84" fill="none"/>
+      <text text-anchor="middle" font-size="${arcSize(text)}">
+        <textPath href="#greetArc" startOffset="50%">${text}</textPath>
+      </text>
+    </svg>`;
+};
+
+const money = (cents, cur) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: cur.toUpperCase() }).format(cents / 100);
+
+async function load() {
+  const sessionId = new URLSearchParams(location.search).get('session_id');
+  if (!sessionId) return fail('no order found');
+
+  // Stripe can redirect a moment before the payment is marked paid, so retry briefly.
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const res = await fetch('/api/order?session_id=' + encodeURIComponent(sessionId));
+    if (res.ok) return render(await res.json());
+    if (res.status !== 402) break;
+    await new Promise((r) => setTimeout(r, 900));
+  }
+
+  fail('we could not confirm this order');
+}
+
+function fail(message) {
+  document.getElementById('ticket').innerHTML =
+    `<p class="ticket-label">${message}</p>
+     <a class="back" href="/">back to the menu</a>`;
+}
+
+function render(order) {
+  document.getElementById('ticket').innerHTML = `
+    ${greetingArc(order.name)}
+    <p class="ticket-label">order</p>
+    <p class="order-number"><span class="hash">#</span>${order.orderNumber}</p>
+    <p class="ticket-note">We will call this number when it is ready. Please have this screen visible to confirm your order.</p>
+    <ul class="ticket-items">
+      ${order.lines.map((l) => `<li><span>${l.qty} &times; ${l.name}</span><span>${money(l.total, order.currency)}</span></li>`).join('')}
+    </ul>
+    <div class="ticket-total"><span>Total</span><span>${money(order.total, order.currency)}</span></div>`;
+  document.title = `Order ${order.orderNumber} · ES30 Cafe`;
+}
+
+load();
+</script>
+</body>
+</html>
