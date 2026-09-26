@@ -176,24 +176,33 @@ body {
   gap: 10px;
 }
 
+/* The name's words are items of this row, so the row wraps between them and
+   the leader and price always end up on the final line, dots and all. */
 .row-main {
   flex: 1;
   min-width: 0;
   display: flex;
-  /* A long name wraps on a narrow screen; aligning to the last baseline keeps
-     the dots and the price on the final line rather than the first. */
+  flex-wrap: wrap;
   align-items: baseline;
-  align-items: last baseline;
-  gap: 8px;
+  column-gap: 0;
+  row-gap: 2px;
 }
 
+/* No box of its own: its words are the row's items. It still carries the type
+   for them, and still reads as one paragraph to a screen reader. */
 .row-name {
-  flex: 0 1 auto;
-  min-width: 0;
+  display: contents;
   font-size: 17px;
   line-height: 1.3;
   margin: 0;
   letter-spacing: 0.01em;
+}
+
+.row-name .w {
+  flex: none;
+  font-size: inherit;
+  line-height: 1.3;
+  margin-right: 0.26em;   /* stands in for the space between words */
 }
 
 /* The description wraps on its own line under the item, so a long one never
@@ -208,10 +217,20 @@ body {
 
 /* Empty span whose bottom edge is its baseline, so the dots land on the same
    line the item name and the price sit on. */
+/* Last word, dots and price as one unbreakable run: whichever line it lands
+   on, the dots fill the gap between the name and the price. */
+.tail {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+}
+
 .leader {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  margin-right: 8px;
   border-bottom: 2.5px dotted var(--dot);
-  min-width: 8px;
 }
 
 /* This face has tight counters, so a heavy stroke closes up the 0s and 6s.

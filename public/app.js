@@ -18,38 +18,67 @@ function buildRibbons() {
 }
 
 /* ---------- dotted leaders ----------
-   A long item name eats the row, leaving a stub of dots that reads as a typo
-   rather than a leader. Measure each row and step the name down just far
-   enough to leave a real run of dots, holding a floor so nothing turns tiny.
-   Below that floor the name is allowed to wrap, as it did before. */
+   The dots have to run from the end of the name to the price on every screen,
+   so the name is laid out word by word inside the row. The row wraps between
+   words, which leaves the leader and the price on the final line with the dots
+   filling whatever is left of it, however narrow the phone.
+
+   On top of that, a name that would only just wrap is stepped down in size so
+   it stays on one line. That only happens while the name stays above a floor;
+   a name that would have to go smaller than that wraps instead. */
 
 const LEADER_MIN = 44;
 const NAME_FLOOR = 12;
 
+// The name is split into words so the row can wrap between them; each word
+// carries its own trailing space, since a flex row drops the whitespace
+// between its items. The last word, the dots and the price travel together in
+// one unbreakable tail, so the price can never be left stranded on a line of
+// its own, and the dots always run between the two.
+function nameRow(name, price) {
+  const words = name.split(/\s+/);
+  const last = words.pop();
+  return `${words.map((word) => `<span class="w">${word}</span>`).join('')}<span class="tail"><span class="w">${last}</span><span class="leader" aria-hidden="true"></span><span class="row-price">${price}</span></span>`;
+}
+
 function fitLeaders() {
   for (const main of document.querySelectorAll('.row-main')) {
     const name = main.querySelector('.row-name');
-    const leader = main.querySelector('.leader');
-    if (!name || !leader) continue;
+    const price = main.querySelector('.row-price');
+    const tail = main.querySelector('.tail');
+    const words = main.querySelectorAll('.w');
+    if (!name || !price || !tail || !words.length) continue;
 
     name.style.fontSize = '';
-    name.style.whiteSpace = 'nowrap';
+    tail.style.minWidth = '';
 
     const base = parseFloat(getComputedStyle(name).fontSize);
-    const natural = name.scrollWidth;
-    const room = name.getBoundingClientRect().width + leader.getBoundingClientRect().width;
-    if (!natural || !room) continue;
+    const style = getComputedStyle(words[0]);
+    const space = parseFloat(style.marginRight) || 0;
 
-    const scale = (room - LEADER_MIN) / natural;
+    // Word widths do not depend on where the row happens to wrap, so this is
+    // the width the name would need on a single line.
+    let natural = 0;
+    for (const word of words) natural += word.getBoundingClientRect().width + space;
+
+    const room = main.clientWidth - price.getBoundingClientRect().width - LEADER_MIN;
+    if (!natural || room <= 0) continue;
+
+    const scale = room / natural;
     if (scale >= 1) continue;
 
+    // Shrink only as far as the floor. Past that, leave the name at full size
+    // and let the row wrap: a second line with a proper run of dots reads
+    // better than one line with three dots squeezed into it.
     const size = base * scale;
-    if (size < NAME_FLOOR) {
-      // Not enough room at a readable size: take the floor and let it wrap.
-      name.style.fontSize = NAME_FLOOR + 'px';
-      name.style.whiteSpace = '';
-    } else {
+    if (size >= NAME_FLOOR) {
       name.style.fontSize = size.toFixed(2) + 'px';
+    } else if (words.length > 1) {
+      // Give the tail a width the line cannot satisfy, so it wraps down to a
+      // line of its own and the dots have room to run.
+      const lastWord = words[words.length - 1].getBoundingClientRect().width;
+      tail.style.minWidth =
+        Math.round(lastWord + LEADER_MIN + price.getBoundingClientRect().width) + 'px';
     }
   }
 }
@@ -81,9 +110,7 @@ async function loadMenu() {
         <div class="row">
           <div class="row-line">
             <div class="row-main">
-              <p class="row-name">${item.name}</p>
-              <span class="leader" aria-hidden="true"></span>
-              <span class="row-price">${money(item.price)}</span>
+              <p class="row-name">${nameRow(item.name, money(item.price))}</p>
             </div>
             <div class="row-ctl" data-id="${item.id}"></div>
           </div>
