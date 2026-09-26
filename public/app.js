@@ -89,6 +89,84 @@ window.addEventListener('resize', () => {
   fitPending = setTimeout(fitLeaders, 120);
 });
 
+/* ---------- the break clock ----------
+   Four split-flap cards counting down to the moment the server named, not to
+   ten minutes from whenever this page happened to load. The offset keeps a
+   phone with a wandering clock in step with the room. */
+
+let clockOffset = 0;        // server time minus this device's time
+let breakEndsAt = null;
+let clockTimer;
+
+function setDigit(flip, value) {
+  const top = flip.querySelector('.top');
+  const bottom = flip.querySelector('.bottom');
+  const leafTop = flip.querySelector('.leaf-top');
+  const leafBottom = flip.querySelector('.leaf-bottom');
+
+  const current = top.textContent;
+  if (current === value) return;
+
+  // The leaf that falls carries the old digit; the one that lands carries the
+  // new. The resting halves are set so the card reads correctly either side of
+  // the turn.
+  leafTop.textContent = current;
+  leafBottom.dataset.value = value;
+  top.textContent = value;
+  bottom.dataset.value = current;
+
+  flip.classList.remove('turning');
+  void flip.offsetWidth;                 // let the animation start again
+  flip.classList.add('turning');
+
+  clearTimeout(flip._settle);
+  flip._settle = setTimeout(() => {
+    flip.classList.remove('turning');
+    bottom.dataset.value = value;
+  }, 540);
+}
+
+function paintClock(msLeft) {
+  const clock = el('breakClock');
+  const left = Math.max(0, msLeft);
+  const total = Math.ceil(left / 1000);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  const digits = [
+    String(Math.min(99, mins)).padStart(2, '0'),
+    String(secs).padStart(2, '0')
+  ].join('');
+
+  clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
+  clock.classList.toggle('last-minute', left > 0 && left <= 60_000);
+  clock.classList.toggle('over', left === 0);
+  clock.querySelector('.flip-label').textContent = left === 0 ? 'break over' : 'break ends in';
+}
+
+function runClock() {
+  clearInterval(clockTimer);
+  const clock = el('breakClock');
+
+  if (!breakEndsAt) {
+    clock.hidden = true;
+    return;
+  }
+
+  const tick = () => {
+    const left = breakEndsAt - (Date.now() + clockOffset);
+    paintClock(left);
+    if (left <= -30_000) {              // half a minute after the end, put it away
+      breakEndsAt = null;
+      clock.hidden = true;
+      clearInterval(clockTimer);
+    }
+  };
+
+  clock.hidden = false;
+  tick();
+  clockTimer = setInterval(tick, 250);
+}
+
 /* ---------- menu ---------- */
 
 // What the menu looks like, boiled down. If this is unchanged, the rows on
@@ -136,6 +214,12 @@ async function syncMenu() {
   state.currency = data.currency;
   state.demo = data.demo;
   state.stripeKey = data.stripeKey || '';
+
+  if (Number.isFinite(data.now)) clockOffset = data.now - Date.now();
+  if (data.breakEndsAt !== breakEndsAt) {
+    breakEndsAt = data.breakEndsAt || null;
+    runClock();
+  }
   state.items = Object.fromEntries(
     data.menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i])))
   );

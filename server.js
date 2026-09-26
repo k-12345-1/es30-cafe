@@ -41,6 +41,10 @@ const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
+const BREAK_FILE = path.join(DATA_DIR, 'break.json');
+
+// The class break the cafe runs in.
+const BREAK_MINUTES = 10;
 
 const app = express();
 
@@ -339,10 +343,17 @@ app.get('/api/menu', async (_req, res) => {
 
   const menu = await readMenu();
   const items = itemsOf(menu);
-  const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
+  const [stock, orders, brk] = await Promise.all([
+    readStock(items), readJson(ORDERS_FILE, {}), readJson(BREAK_FILE, {})
+  ]);
   const available = availability(items, stock, orders);
 
   menuPayload = JSON.stringify({
+    // The clock everyone counts down from, and the time here right now: a phone
+    // whose own clock is a minute out still shows the same seconds as the rest
+    // of the room.
+    now: Date.now(),
+    breakEndsAt: brk.endsAt && brk.endsAt > Date.now() ? brk.endsAt : null,
     menu: menu.map((section) => ({
       ...section,
       groups: section.groups.map((group) => ({
@@ -506,6 +517,28 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
 
 app.post('/api/subscribe', limit('subscribe', 8), async (req, res) => {
   await rememberEmail(req.body?.email);
+  res.json({ ok: true });
+});
+
+/* ---------- the break ----------
+   One clock for the room: staff start it, and every phone counts down to the
+   same moment rather than to its own idea of ten minutes. */
+
+app.post('/api/break', staffOnly, async (req, res) => {
+  const minutes = Number(req.body?.minutes ?? BREAK_MINUTES);
+  if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 120) {
+    return res.status(400).json({ error: 'A break is between a minute and two hours.' });
+  }
+
+  const endsAt = Date.now() + Math.round(minutes * 60_000);
+  await exclusive(() => writeJson(BREAK_FILE, { endsAt }));
+  announce();
+  res.json({ ok: true, endsAt });
+});
+
+app.delete('/api/break', staffOnly, async (_req, res) => {
+  await exclusive(() => writeJson(BREAK_FILE, {}));
+  announce();
   res.json({ ok: true });
 });
 
@@ -738,8 +771,8 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
 
   const menu = await readMenu();
   const items = itemsOf(menu);
-  const [stock, orders, subscribers] = await Promise.all([
-    readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, [])
+  const [stock, orders, subscribers, brk] = await Promise.all([
+    readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, []), readJson(BREAK_FILE, {})
   ]);
   const available = availability(items, stock, orders);
 
@@ -751,6 +784,9 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
   res.json({
     needsToken: Boolean(ADMIN_TOKEN),
     currency: CURRENCY,
+    now: Date.now(),
+    breakEndsAt: brk.endsAt && brk.endsAt > Date.now() ? brk.endsAt : null,
+    breakMinutes: BREAK_MINUTES,
     sections: menu.map((s) => ({
       section: s.section,
       groups: s.groups.map((g) => ({ title: g.title }))

@@ -39,6 +39,18 @@
 
       <!-- ---------- screen two: the menu ---------- -->
       <section class="screen menu" id="menu">
+        <!-- The break clock. Hidden until staff start one. -->
+        <div class="flipclock" id="breakClock" hidden>
+          <p class="flip-label">break ends in</p>
+          <div class="flip-row">
+            <span class="flip" data-slot="0"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+            <span class="flip" data-slot="1"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+            <span class="flip-colon" aria-hidden="true"></span>
+            <span class="flip" data-slot="2"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+            <span class="flip" data-slot="3"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+          </div>
+        </div>
+
         <div id="menuBody"></div>
 
         <p class="footnote" id="footnote" hidden></p>

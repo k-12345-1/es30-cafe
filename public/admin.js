@@ -76,6 +76,8 @@ el('showCode').addEventListener('click', () => {
 /* ---------- drawing the dashboard ---------- */
 
 function render() {
+  showBreak();
+
   el('takingsToday').textContent = money(data.takings.today);
   el('takingsAll').textContent = money(data.takings.allTime);
   el('ordersToday').textContent = data.takings.ordersToday;
@@ -189,6 +191,65 @@ function when(value) {
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+/* ---------- the break clock ---------- */
+
+let breakTimer;
+
+function showBreak() {
+  clearInterval(breakTimer);
+  const left = el('breakLeft');
+  const stop = el('stopBreak');
+  const start = el('startBreak');
+  const endsAt = data.breakEndsAt;
+
+  if (!endsAt) {
+    left.textContent = 'not running';
+    stop.hidden = true;
+    start.textContent = `Start ${data.breakMinutes} minutes`;
+    return;
+  }
+
+  const offset = data.now - Date.now();
+  const paint = () => {
+    const ms = Math.max(0, endsAt - (Date.now() + offset));
+    const total = Math.ceil(ms / 1000);
+    left.textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} left`;
+    if (ms === 0) {
+      clearInterval(breakTimer);
+      left.textContent = 'over';
+      stop.hidden = true;
+      start.textContent = `Start ${data.breakMinutes} minutes`;
+    }
+  };
+
+  stop.hidden = false;
+  start.textContent = 'Restart';
+  paint();
+  breakTimer = setInterval(paint, 1000);
+}
+
+el('startBreak').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/break', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth() },
+      body: JSON.stringify({ minutes: data.breakMinutes })
+    });
+    if (!res.ok) throw new Error('Could not start the break.');
+    await load();
+    say('Break started');
+  } catch (err) { say(err.message, true); }
+});
+
+el('stopBreak').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/break', { method: 'DELETE', headers: auth() });
+    if (!res.ok) throw new Error('Could not stop the break.');
+    await load();
+    say('Break stopped');
+  } catch (err) { say(err.message, true); }
+});
 
 /* ---------- handing orders over ----------
    The tick is saved as it is clicked, so two people working the counter see

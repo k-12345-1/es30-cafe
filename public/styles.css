@@ -1000,3 +1000,171 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
   .sheet-top h3 { font-size: 25px; }
   .totals { font-size: 18px; }
 }
+
+/* ---------- the break clock ----------
+   Four split-flap cards. Each card shows the current digit on two halves; when
+   the digit changes, a leaf carrying the old number falls away from the top and
+   a second leaf carrying the new one drops into the bottom. */
+
+.flipclock {
+  margin: 0 0 26px;
+  text-align: center;
+}
+
+#breakClock[hidden] { display: none; }
+
+.flip-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.flip-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.flip-colon {
+  width: 10px;
+  height: 42px;
+  position: relative;
+}
+
+.flip-colon::before,
+.flip-colon::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.75;
+}
+
+.flip-colon::before { top: 10px; }
+.flip-colon::after  { bottom: 10px; }
+
+.flip {
+  position: relative;
+  width: 38px;
+  height: 52px;
+  perspective: 180px;
+  font-family: var(--banner);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 52px;
+  color: var(--cream);
+}
+
+/* The two halves of the card as it rests. */
+.flip .face {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--ink);
+  text-align: center;
+}
+
+.flip .top {
+  top: 0;
+  border-radius: 7px 7px 0 0;
+  border-bottom: 1px solid rgba(255, 235, 175, 0.28);
+}
+
+.flip .bottom {
+  bottom: 0;
+  border-radius: 0 0 7px 7px;
+}
+
+.flip .bottom::before {
+  content: attr(data-value);
+  display: block;
+  line-height: 52px;
+  transform: translateY(-50%);
+}
+
+/* The moving leaves, only visible mid-flip. */
+.flip .leaf {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--ink);
+  text-align: center;
+  backface-visibility: hidden;
+  opacity: 0;
+}
+
+.flip .leaf-top {
+  top: 0;
+  border-radius: 7px 7px 0 0;
+  transform-origin: bottom center;
+}
+
+.flip .leaf-bottom {
+  bottom: 0;
+  border-radius: 0 0 7px 7px;
+  transform-origin: top center;
+}
+
+.flip .leaf-bottom::before {
+  content: attr(data-value);
+  display: block;
+  line-height: 52px;
+  transform: translateY(-50%);
+}
+
+.flip.turning .leaf-top {
+  opacity: 1;
+  animation: leafFall 260ms ease-in forwards;
+}
+
+.flip.turning .leaf-bottom {
+  opacity: 1;
+  animation: leafLand 260ms 260ms ease-out both;
+}
+
+@keyframes leafFall {
+  from { transform: rotateX(0deg); }
+  to   { transform: rotateX(-90deg); }
+}
+
+@keyframes leafLand {
+  from { transform: rotateX(90deg); }
+  to   { transform: rotateX(0deg); }
+}
+
+/* Under a minute left, the cards warm up to the warning colour. */
+.flipclock.last-minute .flip .face,
+.flipclock.last-minute .flip .leaf { background: var(--alert); }
+.flipclock.last-minute .flip-colon::before,
+.flipclock.last-minute .flip-colon::after { background: var(--alert); }
+
+.flipclock.over .flip-label { opacity: 0.85; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flip.turning .leaf-top,
+  .flip.turning .leaf-bottom { animation: none; opacity: 0; }
+}
+
+@media (min-width: 900px) and (min-height: 760px) {
+  .flip { width: 46px; height: 62px; font-size: 40px; line-height: 62px; }
+  .flip .bottom::before, .flip .leaf-bottom::before { line-height: 62px; }
+  .flip-colon { height: 52px; }
+  .flip-label { font-size: 14px; }
+}
+
+@media (max-height: 620px) {
+  .flipclock { margin-bottom: 18px; }
+  .flip { width: 32px; height: 44px; font-size: 28px; line-height: 44px; }
+  .flip .bottom::before, .flip .leaf-bottom::before { line-height: 44px; }
+  .flip-colon { height: 36px; }
+}

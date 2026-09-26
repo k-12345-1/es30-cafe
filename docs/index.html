@@ -1031,6 +1031,174 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
   .totals { font-size: 18px; }
 }
 
+/* ---------- the break clock ----------
+   Four split-flap cards. Each card shows the current digit on two halves; when
+   the digit changes, a leaf carrying the old number falls away from the top and
+   a second leaf carrying the new one drops into the bottom. */
+
+.flipclock {
+  margin: 0 0 26px;
+  text-align: center;
+}
+
+#breakClock[hidden] { display: none; }
+
+.flip-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.flip-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.flip-colon {
+  width: 10px;
+  height: 42px;
+  position: relative;
+}
+
+.flip-colon::before,
+.flip-colon::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.75;
+}
+
+.flip-colon::before { top: 10px; }
+.flip-colon::after  { bottom: 10px; }
+
+.flip {
+  position: relative;
+  width: 38px;
+  height: 52px;
+  perspective: 180px;
+  font-family: var(--banner);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 52px;
+  color: var(--cream);
+}
+
+/* The two halves of the card as it rests. */
+.flip .face {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--ink);
+  text-align: center;
+}
+
+.flip .top {
+  top: 0;
+  border-radius: 7px 7px 0 0;
+  border-bottom: 1px solid rgba(255, 235, 175, 0.28);
+}
+
+.flip .bottom {
+  bottom: 0;
+  border-radius: 0 0 7px 7px;
+}
+
+.flip .bottom::before {
+  content: attr(data-value);
+  display: block;
+  line-height: 52px;
+  transform: translateY(-50%);
+}
+
+/* The moving leaves, only visible mid-flip. */
+.flip .leaf {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--ink);
+  text-align: center;
+  backface-visibility: hidden;
+  opacity: 0;
+}
+
+.flip .leaf-top {
+  top: 0;
+  border-radius: 7px 7px 0 0;
+  transform-origin: bottom center;
+}
+
+.flip .leaf-bottom {
+  bottom: 0;
+  border-radius: 0 0 7px 7px;
+  transform-origin: top center;
+}
+
+.flip .leaf-bottom::before {
+  content: attr(data-value);
+  display: block;
+  line-height: 52px;
+  transform: translateY(-50%);
+}
+
+.flip.turning .leaf-top {
+  opacity: 1;
+  animation: leafFall 260ms ease-in forwards;
+}
+
+.flip.turning .leaf-bottom {
+  opacity: 1;
+  animation: leafLand 260ms 260ms ease-out both;
+}
+
+@keyframes leafFall {
+  from { transform: rotateX(0deg); }
+  to   { transform: rotateX(-90deg); }
+}
+
+@keyframes leafLand {
+  from { transform: rotateX(90deg); }
+  to   { transform: rotateX(0deg); }
+}
+
+/* Under a minute left, the cards warm up to the warning colour. */
+.flipclock.last-minute .flip .face,
+.flipclock.last-minute .flip .leaf { background: var(--alert); }
+.flipclock.last-minute .flip-colon::before,
+.flipclock.last-minute .flip-colon::after { background: var(--alert); }
+
+.flipclock.over .flip-label { opacity: 0.85; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flip.turning .leaf-top,
+  .flip.turning .leaf-bottom { animation: none; opacity: 0; }
+}
+
+@media (min-width: 900px) and (min-height: 760px) {
+  .flip { width: 46px; height: 62px; font-size: 40px; line-height: 62px; }
+  .flip .bottom::before, .flip .leaf-bottom::before { line-height: 62px; }
+  .flip-colon { height: 52px; }
+  .flip-label { font-size: 14px; }
+}
+
+@media (max-height: 620px) {
+  .flipclock { margin-bottom: 18px; }
+  .flip { width: 32px; height: 44px; font-size: 28px; line-height: 44px; }
+  .flip .bottom::before, .flip .leaf-bottom::before { line-height: 44px; }
+  .flip-colon { height: 36px; }
+}
+
 
 #confirmScreen {
   position: absolute;
@@ -1065,6 +1233,18 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 
       <!-- ---------- screen two: the menu ---------- -->
       <section class="screen menu" id="menu">
+        <!-- The break clock. Hidden until staff start one. -->
+        <div class="flipclock" id="breakClock" hidden>
+          <p class="flip-label">break ends in</p>
+          <div class="flip-row">
+            <span class="flip" data-slot="0"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+            <span class="flip" data-slot="1"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+            <span class="flip-colon" aria-hidden="true"></span>
+            <span class="flip" data-slot="2"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+            <span class="flip" data-slot="3"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
+          </div>
+        </div>
+
         <div id="menuBody"></div>
 
         <p class="footnote" id="footnote" hidden></p>
@@ -1220,6 +1400,84 @@ window.addEventListener('resize', () => {
   fitPending = setTimeout(fitLeaders, 120);
 });
 
+/* ---------- the break clock ----------
+   Four split-flap cards counting down to the moment the server named, not to
+   ten minutes from whenever this page happened to load. The offset keeps a
+   phone with a wandering clock in step with the room. */
+
+let clockOffset = 0;        // server time minus this device's time
+let breakEndsAt = null;
+let clockTimer;
+
+function setDigit(flip, value) {
+  const top = flip.querySelector('.top');
+  const bottom = flip.querySelector('.bottom');
+  const leafTop = flip.querySelector('.leaf-top');
+  const leafBottom = flip.querySelector('.leaf-bottom');
+
+  const current = top.textContent;
+  if (current === value) return;
+
+  // The leaf that falls carries the old digit; the one that lands carries the
+  // new. The resting halves are set so the card reads correctly either side of
+  // the turn.
+  leafTop.textContent = current;
+  leafBottom.dataset.value = value;
+  top.textContent = value;
+  bottom.dataset.value = current;
+
+  flip.classList.remove('turning');
+  void flip.offsetWidth;                 // let the animation start again
+  flip.classList.add('turning');
+
+  clearTimeout(flip._settle);
+  flip._settle = setTimeout(() => {
+    flip.classList.remove('turning');
+    bottom.dataset.value = value;
+  }, 540);
+}
+
+function paintClock(msLeft) {
+  const clock = el('breakClock');
+  const left = Math.max(0, msLeft);
+  const total = Math.ceil(left / 1000);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  const digits = [
+    String(Math.min(99, mins)).padStart(2, '0'),
+    String(secs).padStart(2, '0')
+  ].join('');
+
+  clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
+  clock.classList.toggle('last-minute', left > 0 && left <= 60_000);
+  clock.classList.toggle('over', left === 0);
+  clock.querySelector('.flip-label').textContent = left === 0 ? 'break over' : 'break ends in';
+}
+
+function runClock() {
+  clearInterval(clockTimer);
+  const clock = el('breakClock');
+
+  if (!breakEndsAt) {
+    clock.hidden = true;
+    return;
+  }
+
+  const tick = () => {
+    const left = breakEndsAt - (Date.now() + clockOffset);
+    paintClock(left);
+    if (left <= -30_000) {              // half a minute after the end, put it away
+      breakEndsAt = null;
+      clock.hidden = true;
+      clearInterval(clockTimer);
+    }
+  };
+
+  clock.hidden = false;
+  tick();
+  clockTimer = setInterval(tick, 250);
+}
+
 /* ---------- menu ---------- */
 
 // What the menu looks like, boiled down. If this is unchanged, the rows on
@@ -1267,6 +1525,12 @@ async function syncMenu() {
   state.currency = data.currency;
   state.demo = data.demo;
   state.stripeKey = data.stripeKey || '';
+
+  if (Number.isFinite(data.now)) clockOffset = data.now - Date.now();
+  if (data.breakEndsAt !== breakEndsAt) {
+    breakEndsAt = data.breakEndsAt || null;
+    runClock();
+  }
   state.items = Object.fromEntries(
     data.menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i])))
   );
