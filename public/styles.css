@@ -233,6 +233,14 @@ body {
   .row-price { min-width: 48px; }
 }
 
+/* On the narrowest phones the row has little to spare, so the add control and
+   the price give back what they can and the dots keep their run. */
+@media (max-width: 360px) {
+  .row-line { gap: 6px; }
+  .row-price { min-width: 44px; }
+  .row-ctl { min-width: 66px; }
+}
+
 .row-ctl {
   flex: none;
   min-width: 82px;
@@ -388,9 +396,13 @@ body {
 
 .sheet-scrim.open { opacity: 1; pointer-events: auto; }
 
+/* A bottom sheet that is only as tall as its contents, so a short order does
+   not leave a field of empty cream between the items and the total. It grows
+   with the order and stops at the height of the card. */
 .sheet {
   position: absolute;
-  inset: 0;
+  inset: auto 0 0 0;
+  max-height: 100%;
   background: var(--cream);
   transform: translateY(101%);
   transition: transform 340ms cubic-bezier(.2,.8,.2,1);
@@ -432,7 +444,7 @@ body {
 /* Pull the list into the sheet's padding so its scrollbar sits beside the
    content instead of on top of the quantity buttons. */
 .cart-list {
-  flex: 1;
+  flex: 0 1 auto;
   overflow-y: auto;
   padding-right: 10px;
   margin-right: -10px;
@@ -575,6 +587,8 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 
 .signup input[type="email"]:focus { outline: none; border-color: var(--ink); }
 
+/* The Enter button only fills in once the field holds an @, so an empty form
+   never offers a button that looks ready to take the entry. */
 .signup-go {
   flex: none;
   padding: 11px 20px;
@@ -590,6 +604,13 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 }
 
 .signup-go:hover { background: transparent; color: var(--ink); }
+
+.signup-go[data-armed="false"] {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--hair);
+  opacity: 0.6;
+}
 
 /* Our own validation message, so the browser's grey bubble never appears. */
 .field-note {

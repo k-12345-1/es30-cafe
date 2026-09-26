@@ -252,6 +252,14 @@ body {
   .row-price { min-width: 48px; }
 }
 
+/* On the narrowest phones the row has little to spare, so the add control and
+   the price give back what they can and the dots keep their run. */
+@media (max-width: 360px) {
+  .row-line { gap: 6px; }
+  .row-price { min-width: 44px; }
+  .row-ctl { min-width: 66px; }
+}
+
 .row-ctl {
   flex: none;
   min-width: 82px;
@@ -407,9 +415,13 @@ body {
 
 .sheet-scrim.open { opacity: 1; pointer-events: auto; }
 
+/* A bottom sheet that is only as tall as its contents, so a short order does
+   not leave a field of empty cream between the items and the total. It grows
+   with the order and stops at the height of the card. */
 .sheet {
   position: absolute;
-  inset: 0;
+  inset: auto 0 0 0;
+  max-height: 100%;
   background: var(--cream);
   transform: translateY(101%);
   transition: transform 340ms cubic-bezier(.2,.8,.2,1);
@@ -451,7 +463,7 @@ body {
 /* Pull the list into the sheet's padding so its scrollbar sits beside the
    content instead of on top of the quantity buttons. */
 .cart-list {
-  flex: 1;
+  flex: 0 1 auto;
   overflow-y: auto;
   padding-right: 10px;
   margin-right: -10px;
@@ -594,6 +606,8 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 
 .signup input[type="email"]:focus { outline: none; border-color: var(--ink); }
 
+/* The Enter button only fills in once the field holds an @, so an empty form
+   never offers a button that looks ready to take the entry. */
 .signup-go {
   flex: none;
   padding: 11px 20px;
@@ -609,6 +623,13 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 }
 
 .signup-go:hover { background: transparent; color: var(--ink); }
+
+.signup-go[data-armed="false"] {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--hair);
+  opacity: 0.6;
+}
 
 /* Our own validation message, so the browser's grey bubble never appears. */
 .field-note {
@@ -1037,6 +1058,49 @@ function buildRibbons() {
   }
 }
 
+/* ---------- dotted leaders ----------
+   A long item name eats the row, leaving a stub of dots that reads as a typo
+   rather than a leader. Measure each row and step the name down just far
+   enough to leave a real run of dots, holding a floor so nothing turns tiny.
+   Below that floor the name is allowed to wrap, as it did before. */
+
+const LEADER_MIN = 44;
+const NAME_FLOOR = 12;
+
+function fitLeaders() {
+  for (const main of document.querySelectorAll('.row-main')) {
+    const name = main.querySelector('.row-name');
+    const leader = main.querySelector('.leader');
+    if (!name || !leader) continue;
+
+    name.style.fontSize = '';
+    name.style.whiteSpace = 'nowrap';
+
+    const base = parseFloat(getComputedStyle(name).fontSize);
+    const natural = name.scrollWidth;
+    const room = name.getBoundingClientRect().width + leader.getBoundingClientRect().width;
+    if (!natural || !room) continue;
+
+    const scale = (room - LEADER_MIN) / natural;
+    if (scale >= 1) continue;
+
+    const size = base * scale;
+    if (size < NAME_FLOOR) {
+      // Not enough room at a readable size: take the floor and let it wrap.
+      name.style.fontSize = NAME_FLOOR + 'px';
+      name.style.whiteSpace = '';
+    } else {
+      name.style.fontSize = size.toFixed(2) + 'px';
+    }
+  }
+}
+
+let fitPending;
+window.addEventListener('resize', () => {
+  clearTimeout(fitPending);
+  fitPending = setTimeout(fitLeaders, 120);
+});
+
 /* ---------- menu ---------- */
 
 async function loadMenu() {
@@ -1070,6 +1134,7 @@ async function loadMenu() {
   `).join('');
 
   renderSite(data.site || {});
+  fitLeaders();
 
   el('menuBody').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-delta]');
@@ -1115,6 +1180,7 @@ function renderMenuQuantities() {
   }
 
   renderStockNotes();
+  fitLeaders();
 }
 
 // A quiet line under an item once it is into single figures, or all of them are

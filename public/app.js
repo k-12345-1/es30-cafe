@@ -17,6 +17,49 @@ function buildRibbons() {
   }
 }
 
+/* ---------- dotted leaders ----------
+   A long item name eats the row, leaving a stub of dots that reads as a typo
+   rather than a leader. Measure each row and step the name down just far
+   enough to leave a real run of dots, holding a floor so nothing turns tiny.
+   Below that floor the name is allowed to wrap, as it did before. */
+
+const LEADER_MIN = 44;
+const NAME_FLOOR = 12;
+
+function fitLeaders() {
+  for (const main of document.querySelectorAll('.row-main')) {
+    const name = main.querySelector('.row-name');
+    const leader = main.querySelector('.leader');
+    if (!name || !leader) continue;
+
+    name.style.fontSize = '';
+    name.style.whiteSpace = 'nowrap';
+
+    const base = parseFloat(getComputedStyle(name).fontSize);
+    const natural = name.scrollWidth;
+    const room = name.getBoundingClientRect().width + leader.getBoundingClientRect().width;
+    if (!natural || !room) continue;
+
+    const scale = (room - LEADER_MIN) / natural;
+    if (scale >= 1) continue;
+
+    const size = base * scale;
+    if (size < NAME_FLOOR) {
+      // Not enough room at a readable size: take the floor and let it wrap.
+      name.style.fontSize = NAME_FLOOR + 'px';
+      name.style.whiteSpace = '';
+    } else {
+      name.style.fontSize = size.toFixed(2) + 'px';
+    }
+  }
+}
+
+let fitPending;
+window.addEventListener('resize', () => {
+  clearTimeout(fitPending);
+  fitPending = setTimeout(fitLeaders, 120);
+});
+
 /* ---------- menu ---------- */
 
 async function loadMenu() {
@@ -51,6 +94,7 @@ async function loadMenu() {
   `).join('');
 
   renderSite(data.site || {});
+  fitLeaders();
 
   el('menuBody').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-delta]');
@@ -96,6 +140,7 @@ function renderMenuQuantities() {
   }
 
   renderStockNotes();
+  fitLeaders();
 }
 
 // A quiet line under an item once it is into single figures, or all of them are
