@@ -4,7 +4,12 @@
 // server or talk to Stripe.
 
 import fs from 'node:fs';
-import { MENU, SITE } from './menu.js';
+import { MENU as SEED_MENU, SITE } from './menu.js';
+
+// menu.json is the live menu once staff have edited it; menu.js is the seed.
+const MENU = fs.existsSync('menu.json')
+  ? JSON.parse(fs.readFileSync('menu.json', 'utf8'))
+  : SEED_MENU;
 
 const css  = fs.readFileSync('public/styles.css', 'utf8');
 const html = fs.readFileSync('public/index.html', 'utf8');
@@ -89,18 +94,28 @@ function showTicket(order) {
       \${order.lines.map((l) => \`<li><span>\${l.qty} &times; \${esc(l.name)}</span><span>\${money(l.total)}</span></li>\`).join('')}
     </ul>
     <div class="ticket-total"><span>Total</span><span>\${money(order.total)}</span></div>
-    <form class="signup" id="signup">
+    <form class="signup" id="signup" novalidate>
       <label class="signup-line" for="email">Want $5 on ES30 Cafe? Enter your email for a chance to win!</label>
       <div class="signup-row">
-        <input type="email" id="email" name="email" autocomplete="email" placeholder="name@college.harvard.edu" required>
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="name@college.harvard.edu">
         <button type="submit" class="signup-go">Enter</button>
       </div>
+      <p class="field-note" id="emailNote"></p>
     </form>\`;
 
   // No server in this build, so the entry is acknowledged and goes no further.
   el('confirmScreen').querySelector('#signup').addEventListener('submit', (e) => {
     e.preventDefault();
-    e.target.innerHTML = '<p class="signup-line">You are in. Good luck!</p>';
+    const email = el('email').value.trim();
+    const note = el('emailNote');
+    note.textContent = '';
+    if (!email) { note.textContent = 'Pop your email in first.'; return; }
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)) {
+      note.textContent = 'That does not look like an email address.';
+      return;
+    }
+    e.target.innerHTML =
+      '<p class="signup-line">Good luck! Check your email next Wednesday at 10am to see if you are the lucky winner!</p>';
   });
 
   el('confirmScreen').hidden = false;

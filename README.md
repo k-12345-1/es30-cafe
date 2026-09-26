@@ -88,11 +88,11 @@ drops as orders are paid for, so twelve Celsius cannot become thirteen orders.
 Set the counts at **/admin.html** on the running site. The starting counts come
 from the `stock` value on each item in `menu.js`, used only to seed `stock.json`
 the first time the server runs; after that `stock.json` is the live record and
-the staff page is how you change it.
+the admin page is how you change it.
 
 On the storefront an item that runs out shows "sold out" instead of a plus, the
-plus is disabled once the cart holds all that is left, and a line appears under
-an item when it is down to the last three.
+plus is disabled once the cart holds all that is left, and a countdown appears
+under an item once it is into single figures.
 
 ### How it holds together
 
@@ -137,9 +137,22 @@ quietly and a file error is logged, not raised.
 Read the list from the running site at `/api/subscribers`, which is behind the
 same staff check as the stock page. `subscribers.json` is not in git.
 
+## The admin page
+
+`/admin.html` is the staff side. It shows takings for today and all time, the
+stock counts, recent orders, and the giveaway entries with a Copy all button.
+Items can be added and removed there, and the storefront picks the change up on
+its next load.
+
+Removing an item takes it off the menu only. Past orders keep their own copy of
+the name and price, so receipts and takings are unaffected by a later change.
+
 ## Editing the menu
 
-`MENU` in `menu.js` is sections, each holding groups, each holding items:
+The live menu is `menu.json`, written the first time the server runs and edited
+from the admin page after that. `menu.js` is only the seed, and is still the
+place to change the starting menu before a first run. Its shape is sections,
+each holding groups, each holding items:
 
 ```js
 {
@@ -173,13 +186,14 @@ with a real database.
 
 - `server.js` — Express server, stock, Stripe session creation, order lookup
 - `menu.js` — the menu, prices and starting stock
+- `menu.json` — the live menu, written by the server (not in git)
 - `stock.json` — the live count per item, written by the server (not in git)
 - `subscribers.json` — mailing list signups (not in git)
 - `build-static.mjs` — builds `docs/index.html`, the static copy for GitHub Pages
 - `public/index.html` — splash and menu
 - `public/app.js` — cart, sheet, checkout
 - `public/success.html` — order number confirmation
-- `public/admin.html` — the staff page for setting stock
+- `public/admin.html`, `admin.css`, `admin.js` — the staff side
 - `public/styles.css` — all styling, colors at the top
 
 ## The GitHub Pages copy

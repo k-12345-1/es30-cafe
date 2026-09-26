@@ -98,8 +98,8 @@ function renderMenuQuantities() {
   renderStockNotes();
 }
 
-// A quiet line under an item once it is the last few, or all of them are in the
-// cart already, so the disabled plus is never a mystery.
+// A quiet line under an item once it is into single figures, or all of them are
+// in the cart already, so the disabled plus is never a mystery.
 function renderStockNotes() {
   for (const row of document.querySelectorAll('.row')) {
     const id = row.querySelector('.row-ctl').dataset.id;
@@ -109,7 +109,7 @@ function renderStockNotes() {
     let note = '';
 
     if (left > 0 && qty >= left) note = `that is all ${left} we have`;
-    else if (left > 0 && left <= 3) note = `only ${left} left`;
+    else if (left > 0 && left < 10) note = `only ${left} left`;
 
     let el = row.querySelector('.row-stock');
     if (!note) { if (el) el.remove(); continue; }

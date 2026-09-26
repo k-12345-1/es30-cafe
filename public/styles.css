@@ -545,8 +545,7 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
    under the receipt rather than in the way of paying. */
 .signup {
   width: 100%;
-  max-width: 340px;
-  margin: 26px auto 0;
+  margin: 26px 0 0;
   padding-top: 20px;
   border-top: 2px dotted var(--dot);
 }
@@ -591,6 +590,16 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
 }
 
 .signup-go:hover { background: transparent; color: var(--ink); }
+
+/* Our own validation message, so the browser's grey bubble never appears. */
+.field-note {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #9c4221;
+  margin: 8px 0 0;
+  min-height: 18px;
+  text-align: left;
+}
 
 /* ---------- confirmation ---------- */
 
@@ -708,6 +717,47 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   text-decoration: none;
   border-bottom: 2.5px solid var(--hair);
   padding-bottom: 3px;
+}
+
+/* ---------- room to breathe on a laptop or desktop ----------
+   The column and its type both grow, so a wide screen shows a comfortable page
+   rather than phone-sized text stranded in the middle of it. */
+
+@media (min-width: 900px) and (min-height: 760px) {
+  .card { width: 560px; max-height: 940px; }
+
+  .ribbon .r4 { font-size: 36px; padding: 12px 62px; }
+  .ghost-btn { font-size: 32px; }
+
+  .section-title { font-size: 38px; }
+  .group-title { font-size: 25px; }
+  .row-name { font-size: 20px; }
+  .row-price { font-size: 21px; min-width: 64px; }
+  .row-desc { font-size: 14px; }
+  .row-stock { font-size: 14px; }
+
+  .add { width: 34px; height: 34px; font-size: 18px; }
+  .row-qty button { width: 30px; height: 30px; font-size: 17px; }
+  .row-qty span { font-size: 16px; min-width: 24px; }
+  .row-ctl { min-width: 94px; }
+
+  .cart-bar { font-size: 17px; }
+  .cart-bar-cta { font-size: 16px; padding: 9px 20px; }
+
+  .sheet-top h3 { font-size: 32px; }
+  .cart-line-name { font-size: 18px; }
+  .cart-line-sub { font-size: 14px; }
+  .totals { font-size: 26px; }
+  .pay { font-size: 20px; }
+  label { font-size: 15px; }
+  input[type="text"] { font-size: 18px; }
+
+  .ticket-label { font-size: 19px; }
+  .ticket-note { font-size: 18px; max-width: 32ch; }
+  .ticket-items { font-size: 19px; }
+  .ticket-total { font-size: 27px; }
+  .signup-line { font-size: 16px; }
+  .signup input[type="email"], .signup-go { font-size: 17px; }
 }
 
 /* ---------- scrollbars ---------- */

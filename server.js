@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Stripe from 'stripe';
-import { MENU, ITEMS, SITE } from './menu.js';
+import { MENU as SEED_MENU, SITE } from './menu.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,10 +18,10 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const RESERVE_MINUTES = 30;
 
 // Demo mode lets the whole flow run before Stripe keys exist.
-// It never charges anything and is refused if a live key is present.
 const DEMO = !SECRET || SECRET === 'sk_test_replace_me';
 const stripe = DEMO ? null : new Stripe(SECRET);
 
+const MENU_FILE = path.join(__dirname, 'menu.json');
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 const STOCK_FILE = path.join(__dirname, 'stock.json');
 const EMAILS_FILE = path.join(__dirname, 'subscribers.json');
@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 /* ---------- one writer at a time ----------
    Reading a JSON file, changing it and writing it back is several awaits long,
    so two overlapping requests could each read the same counts and undo one
-   another. Every read-modify-write of orders or stock goes through this queue. */
+   another. Every read-modify-write goes through this queue. */
 
 let queue = Promise.resolve();
 
@@ -43,10 +43,6 @@ function exclusive(work) {
   return run;
 }
 
-/* ---------- storage ----------
-   JSON files are enough for one cafe on one machine. Swap these four functions
-   for a real database when you need more than one server. */
-
 async function readJson(file, fallback) {
   try {
     return JSON.parse(await fs.readFile(file, 'utf8'));
@@ -55,25 +51,47 @@ async function readJson(file, fallback) {
   }
 }
 
-const readOrders = () => readJson(ORDERS_FILE, {});
-const writeOrders = (orders) => fs.writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2));
+const writeJson = (file, value) => fs.writeFile(file, JSON.stringify(value, null, 2));
 
-// stock.json holds the on-hand count per item. Items missing from it are seeded
-// from the `stock` value in menu.js, so a newly added item starts stocked.
-async function readStock() {
-  const stock = await readJson(STOCK_FILE, {});
-  let seeded = false;
-  for (const [id, item] of Object.entries(ITEMS)) {
-    if (!Number.isFinite(stock[id])) {
-      stock[id] = Number.isFinite(item.stock) ? item.stock : 0;
-      seeded = true;
-    }
-  }
-  if (seeded) await fs.writeFile(STOCK_FILE, JSON.stringify(stock, null, 2));
-  return stock;
+/* ---------- the menu ----------
+   Lives in menu.json so staff can add and remove items while the cafe is open.
+   menu.js is only the starting point, used to write that file the first time. */
+
+async function readMenu() {
+  const menu = await readJson(MENU_FILE, null);
+  if (menu) return menu;
+
+  const seeded = SEED_MENU.map((section) => ({
+    section: section.section,
+    groups: section.groups.map((group) => ({
+      title: group.title,
+      items: group.items.map((item) => ({ ...item }))
+    }))
+  }));
+  await writeJson(MENU_FILE, seeded);
+  return seeded;
 }
 
-const writeStock = (stock) => fs.writeFile(STOCK_FILE, JSON.stringify(stock, null, 2));
+const itemsOf = (menu) =>
+  Object.fromEntries(menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i]))));
+
+const slug = (name) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || 'item';
+
+/* ---------- stock ---------- */
+
+async function readStock(items) {
+  const stock = await readJson(STOCK_FILE, {});
+  let changed = false;
+  for (const [id, item] of Object.entries(items)) {
+    if (!Number.isFinite(stock[id])) {
+      stock[id] = Number.isFinite(item.stock) ? item.stock : 0;
+      changed = true;
+    }
+  }
+  if (changed) await writeJson(STOCK_FILE, stock);
+  return stock;
+}
 
 /* ---------- mailing list ----------
    Optional, and kept apart from the order. A bad address, or a failure writing
@@ -84,13 +102,12 @@ const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 async function rememberEmail(raw) {
   const email = String(raw || '').trim().toLowerCase();
   if (!email || email.length > 254 || !LOOKS_LIKE_EMAIL.test(email)) return;
-
   try {
     await exclusive(async () => {
       const list = await readJson(EMAILS_FILE, []);
       if (list.some((entry) => entry.email === email)) return;
       list.push({ email, addedAt: new Date().toISOString() });
-      await fs.writeFile(EMAILS_FILE, JSON.stringify(list, null, 2));
+      await writeJson(EMAILS_FILE, list);
     });
   } catch (err) {
     console.error('could not save email:', err);
@@ -98,8 +115,7 @@ async function rememberEmail(raw) {
 }
 
 /* ---------- availability ----------
-   On-hand count minus whatever unpaid checkouts are still holding. An unpaid
-   checkout stops holding its items once it is older than RESERVE_MINUTES. */
+   On-hand count minus whatever unpaid checkouts are still holding. */
 
 function heldByUnpaidOrders(orders) {
   const cutoff = Date.now() - RESERVE_MINUTES * 60_000;
@@ -107,27 +123,22 @@ function heldByUnpaidOrders(orders) {
   for (const order of Object.values(orders)) {
     if (order.paid) continue;
     if (!order.createdAt || order.createdAt < cutoff) continue;
-    for (const line of order.lines) {
-      held[line.id] = (held[line.id] || 0) + line.qty;
-    }
+    for (const line of order.lines) held[line.id] = (held[line.id] || 0) + line.qty;
   }
   return held;
 }
 
-function availability(stock, orders) {
+function availability(items, stock, orders) {
   const held = heldByUnpaidOrders(orders);
   const available = {};
-  for (const id of Object.keys(ITEMS)) {
+  for (const id of Object.keys(items)) {
     available[id] = Math.max(0, (stock[id] || 0) - (held[id] || 0));
   }
   return available;
 }
 
-// Take the items off the shelf for good. Called once an order is actually paid.
 function commitStock(stock, lines) {
-  for (const line of lines) {
-    stock[line.id] = Math.max(0, (stock[line.id] || 0) - line.qty);
-  }
+  for (const line of lines) stock[line.id] = Math.max(0, (stock[line.id] || 0) - line.qty);
 }
 
 // Order numbers are sequential per day: 1, 2, and so on, reset each morning.
@@ -138,29 +149,24 @@ function nextOrderNumber(orders) {
 }
 
 /* ---------- cart pricing ----------
-   The client sends ids and quantities only. Every price comes from menu.js and
-   every quantity is checked against what is actually on the shelf, so neither a
-   tampered cart nor a stale page can buy more than exists. */
+   The client sends ids and quantities only. Prices come from the menu and every
+   quantity is checked against the shelf, so neither a tampered cart nor a stale
+   page can buy more than exists. */
 
-function priceCart(rawCart, available) {
-  if (!Array.isArray(rawCart) || rawCart.length === 0) {
-    throw new Error('Your cart is empty.');
-  }
+function priceCart(rawCart, items, available) {
+  if (!Array.isArray(rawCart) || rawCart.length === 0) throw new Error('Your cart is empty.');
+
   const lines = [];
   for (const entry of rawCart) {
-    const item = ITEMS[entry?.id];
-    if (!item) throw new Error(`Unknown item: ${entry?.id}`);
+    const item = items[entry?.id];
+    if (!item) throw new Error('Something in your cart is no longer on the menu.');
 
     const qty = Math.floor(Number(entry.qty));
-    if (!Number.isFinite(qty) || qty < 1) {
-      throw new Error(`Invalid quantity for ${item.name}.`);
-    }
+    if (!Number.isFinite(qty) || qty < 1) throw new Error(`Invalid quantity for ${item.name}.`);
 
     const left = available[item.id] ?? 0;
     if (left <= 0) throw new Error(`${item.name} is sold out.`);
-    if (qty > left) {
-      throw new Error(`Only ${left} ${item.name} left, and your order asks for ${qty}.`);
-    }
+    if (qty > left) throw new Error(`Only ${left} ${item.name} left, and your order asks for ${qty}.`);
 
     lines.push({ id: item.id, name: item.name, unit: item.price, qty, total: item.price * qty });
   }
@@ -170,21 +176,26 @@ function priceCart(rawCart, available) {
 /* ---------- the menu, with what is left of each item ---------- */
 
 app.get('/api/menu', async (_req, res) => {
-  const [stock, orders] = await Promise.all([readStock(), readOrders()]);
-  const available = availability(stock, orders);
+  const menu = await readMenu();
+  const items = itemsOf(menu);
+  const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
+  const available = availability(items, stock, orders);
 
-  const menu = MENU.map((section) => ({
-    ...section,
-    groups: section.groups.map((group) => ({
-      ...group,
-      items: group.items.map(({ stock: _seed, ...item }) => ({
-        ...item,
-        available: available[item.id] ?? 0
+  res.json({
+    menu: menu.map((section) => ({
+      ...section,
+      groups: section.groups.map((group) => ({
+        ...group,
+        items: group.items.map(({ stock: _seed, ...item }) => ({
+          ...item,
+          available: available[item.id] ?? 0
+        }))
       }))
-    }))
-  }));
-
-  res.json({ menu, site: SITE, currency: CURRENCY, demo: DEMO });
+    })),
+    site: SITE,
+    currency: CURRENCY,
+    demo: DEMO
+  });
 });
 
 /* ---------- checkout ---------- */
@@ -197,12 +208,12 @@ app.post('/api/checkout', async (req, res) => {
     }
 
     const result = await exclusive(async () => {
-      const [stock, orders] = await Promise.all([readStock(), readOrders()]);
-      const { lines, total } = priceCart(req.body?.cart, availability(stock, orders));
+      const menu = await readMenu();
+      const items = itemsOf(menu);
+      const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
+      const { lines, total } = priceCart(req.body?.cart, items, availability(items, stock, orders));
 
       if (DEMO) {
-        // No Stripe key configured. Record the order, take the stock, and skip
-        // straight to the confirmation so the flow can be demonstrated.
         const key = `demo_${Date.now().toString(36)}`;
         const { number, day } = nextOrderNumber(orders);
         orders[key] = {
@@ -210,7 +221,7 @@ app.post('/api/checkout', async (req, res) => {
           currency: CURRENCY, demo: true, paid: true, createdAt: Date.now()
         };
         commitStock(stock, lines);
-        await Promise.all([writeOrders(orders), writeStock(stock)]);
+        await Promise.all([writeJson(ORDERS_FILE, orders), writeJson(STOCK_FILE, stock)]);
         return { demo: true, url: `${PUBLIC_URL}/success.html?session_id=${key}` };
       }
 
@@ -218,11 +229,7 @@ app.post('/api/checkout', async (req, res) => {
         mode: 'payment',
         line_items: lines.map((l) => ({
           quantity: l.qty,
-          price_data: {
-            currency: CURRENCY,
-            unit_amount: l.unit,
-            product_data: { name: l.name }
-          }
+          price_data: { currency: CURRENCY, unit_amount: l.unit, product_data: { name: l.name } }
         })),
         metadata: { customer_name: name },
         expires_at: Math.floor(Date.now() / 1000) + RESERVE_MINUTES * 60,
@@ -230,12 +237,11 @@ app.post('/api/checkout', async (req, res) => {
         cancel_url: `${PUBLIC_URL}/`
       });
 
-      // Recorded unpaid, which holds the stock until it is paid or expires.
       orders[session.id] = {
         orderNumber: null, day: null, name, lines, total,
         currency: CURRENCY, paid: false, createdAt: Date.now()
       };
-      await writeOrders(orders);
+      await writeJson(ORDERS_FILE, orders);
       return { url: session.url };
     });
 
@@ -253,15 +259,13 @@ app.post('/api/subscribe', async (req, res) => {
   res.json({ ok: true });
 });
 
-/* ---------- confirmation ----------
-   The order number is assigned, and the stock taken, only once payment is
-   confirmed. The same session always returns the same number. */
+/* ---------- confirmation ---------- */
 
 app.get('/api/order', async (req, res) => {
   const sessionId = String(req.query.session_id || '');
   if (!sessionId) return res.status(400).json({ error: 'Missing session.' });
 
-  const existing = (await readOrders())[sessionId];
+  const existing = (await readJson(ORDERS_FILE, {}))[sessionId];
   if (!existing) return res.status(404).json({ error: 'Order not found.' });
   if (existing.orderNumber) return res.json(publicOrder(existing));
   if (DEMO) return res.status(404).json({ error: 'Order not found.' });
@@ -272,14 +276,15 @@ app.get('/api/order', async (req, res) => {
   }
 
   const finished = await exclusive(async () => {
-    const [stock, orders] = await Promise.all([readStock(), readOrders()]);
+    const items = itemsOf(await readMenu());
+    const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
     const order = orders[sessionId];
-    if (order.orderNumber) return order;           // another request got here first
+    if (order.orderNumber) return order;
 
     const { number, day } = nextOrderNumber(orders);
     orders[sessionId] = { ...order, orderNumber: number, day, paid: true };
     commitStock(stock, order.lines);
-    await Promise.all([writeOrders(orders), writeStock(stock)]);
+    await Promise.all([writeJson(ORDERS_FILE, orders), writeJson(STOCK_FILE, stock)]);
     return orders[sessionId];
   });
 
@@ -297,10 +302,9 @@ function publicOrder(o) {
   };
 }
 
-/* ---------- staff: setting the counts ----------
-   Guarded by ADMIN_TOKEN. With no token set, the counts can only be changed
-   from the machine the server runs on, which suits a till behind the counter.
-   Set ADMIN_TOKEN before putting this on the internet. */
+/* ---------- staff ----------
+   Guarded by ADMIN_TOKEN. With no token set, only from the machine the server
+   runs on, which suits a till behind the counter. */
 
 function isLocal(req) {
   const ip = req.socket.remoteAddress || '';
@@ -314,27 +318,60 @@ function staffOnly(req, res, next) {
     return res.status(401).json({ error: 'Wrong or missing staff code.' });
   }
   if (isLocal(req)) return next();
-  return res.status(401).json({
-    error: 'Set ADMIN_TOKEN in .env to change stock from another machine.'
-  });
+  return res.status(401).json({ error: 'Set ADMIN_TOKEN in .env to manage from another machine.' });
 }
 
-// The list, for whoever sends the updates.
-app.get('/api/subscribers', staffOnly, async (_req, res) => {
-  res.json({ subscribers: await readJson(EMAILS_FILE, []) });
-});
+// Everything the admin screen shows, in one call.
+app.get('/api/admin', staffOnly, async (_req, res) => {
+  const menu = await readMenu();
+  const items = itemsOf(menu);
+  const [stock, orders, subscribers] = await Promise.all([
+    readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, [])
+  ]);
+  const available = availability(items, stock, orders);
 
-app.get('/api/stock', staffOnly, async (_req, res) => {
-  const [stock, orders] = await Promise.all([readStock(), readOrders()]);
-  const available = availability(stock, orders);
+  const paid = Object.values(orders).filter((o) => o.paid && o.orderNumber);
+  const today = new Date().toISOString().slice(0, 10);
+
   res.json({
     needsToken: Boolean(ADMIN_TOKEN),
-    items: Object.values(ITEMS).map((item) => ({
-      id: item.id,
-      name: item.name,
-      onHand: stock[item.id] ?? 0,
-      available: available[item.id] ?? 0
-    }))
+    currency: CURRENCY,
+    sections: menu.map((s) => ({
+      section: s.section,
+      groups: s.groups.map((g) => ({ title: g.title }))
+    })),
+    items: menu.flatMap((section) =>
+      section.groups.flatMap((group) =>
+        group.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          section: section.section,
+          group: group.title,
+          onHand: stock[item.id] ?? 0,
+          available: available[item.id] ?? 0
+        }))
+      )
+    ),
+    takings: {
+      today: paid.filter((o) => o.day === today).reduce((sum, o) => sum + o.total, 0),
+      allTime: paid.reduce((sum, o) => sum + o.total, 0),
+      ordersToday: paid.filter((o) => o.day === today).length,
+      ordersAllTime: paid.length
+    },
+    orders: paid
+      .slice()
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, 100)
+      .map((o) => ({
+        orderNumber: o.orderNumber,
+        day: o.day,
+        name: o.name,
+        total: o.total,
+        createdAt: o.createdAt,
+        lines: o.lines.map((l) => ({ name: l.name, qty: l.qty }))
+      })),
+    subscribers: subscribers.slice().reverse()
   });
 });
 
@@ -343,22 +380,103 @@ app.post('/api/stock', staffOnly, async (req, res) => {
   if (!counts || typeof counts !== 'object') {
     return res.status(400).json({ error: 'Send the new counts.' });
   }
-
   try {
-    const saved = await exclusive(async () => {
-      const [stock, orders] = await Promise.all([readStock(), readOrders()]);
+    await exclusive(async () => {
+      const items = itemsOf(await readMenu());
+      const stock = await readStock(items);
       for (const [id, raw] of Object.entries(counts)) {
-        if (!ITEMS[id]) throw new Error(`Unknown item: ${id}`);
+        if (!items[id]) throw new Error('That item is no longer on the menu.');
         const qty = Math.floor(Number(raw));
         if (!Number.isFinite(qty) || qty < 0 || qty > 9999) {
-          throw new Error(`${ITEMS[id].name} needs a whole number from 0 to 9999.`);
+          throw new Error(`${items[id].name} needs a whole number from 0 to 9999.`);
         }
         stock[id] = qty;
       }
-      await writeStock(stock);
-      return availability(stock, orders);
+      await writeJson(STOCK_FILE, stock);
     });
-    res.json({ ok: true, available: saved });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Add an item. It shows up on the storefront straight away.
+app.post('/api/items', staffOnly, async (req, res) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    const priceRaw = Number(req.body?.price);
+    const sectionName = String(req.body?.section || '').trim();
+    const groupTitle = String(req.body?.group ?? '').trim();
+    const desc = String(req.body?.desc || '').trim();
+    const stockRaw = Math.floor(Number(req.body?.stock));
+
+    if (name.length < 1 || name.length > 60) throw new Error('Give the item a name.');
+    if (!Number.isFinite(priceRaw) || priceRaw < 0 || priceRaw > 9999) {
+      throw new Error('Price needs to be a number of dollars, like 3 or 3.50.');
+    }
+    const price = Math.round(priceRaw * 100);
+    const stockStart = Number.isFinite(stockRaw) && stockRaw >= 0 ? Math.min(stockRaw, 9999) : 0;
+
+    const added = await exclusive(async () => {
+      const menu = await readMenu();
+      const items = itemsOf(menu);
+
+      let id = slug(name);
+      while (items[id]) id = `${slug(name)}-${Math.random().toString(36).slice(2, 6)}`;
+
+      let section = menu.find((s) => s.section === sectionName);
+      if (!section) {
+        section = { section: sectionName || 'Menu', groups: [] };
+        menu.push(section);
+      }
+      let group = section.groups.find((g) => (g.title || '') === groupTitle);
+      if (!group) {
+        group = { title: groupTitle, items: [] };
+        section.groups.push(group);
+      }
+
+      const item = { id, name, price };
+      if (desc) item.desc = desc;
+      group.items.push(item);
+
+      const stock = await readStock(items);
+      stock[id] = stockStart;
+
+      await Promise.all([writeJson(MENU_FILE, menu), writeJson(STOCK_FILE, stock)]);
+      return item;
+    });
+
+    res.json({ ok: true, item: added });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Remove an item. Past orders keep their own copy of the name and price, so
+// the receipts and the takings are unaffected.
+app.delete('/api/items/:id', staffOnly, async (req, res) => {
+  try {
+    await exclusive(async () => {
+      const menu = await readMenu();
+      const id = req.params.id;
+      let found = false;
+
+      for (const section of menu) {
+        for (const group of section.groups) {
+          const at = group.items.findIndex((i) => i.id === id);
+          if (at !== -1) { group.items.splice(at, 1); found = true; }
+        }
+        section.groups = section.groups.filter((g) => g.items.length > 0);
+      }
+      if (!found) throw new Error('That item is already gone.');
+
+      const trimmed = menu.filter((s) => s.groups.length > 0);
+      const stock = await readJson(STOCK_FILE, {});
+      delete stock[id];
+
+      await Promise.all([writeJson(MENU_FILE, trimmed), writeJson(STOCK_FILE, stock)]);
+    });
+    res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -366,7 +484,7 @@ app.post('/api/stock', staffOnly, async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`ES30 Cafe running at ${PUBLIC_URL}`);
-  console.log(`Stock page at ${PUBLIC_URL}/admin.html`);
+  console.log(`Admin at ${PUBLIC_URL}/admin.html`);
   if (DEMO) console.log('DEMO MODE: no STRIPE_SECRET_KEY set, payments are simulated.');
-  if (!ADMIN_TOKEN) console.log('No ADMIN_TOKEN set: stock can only be changed from this machine.');
+  if (!ADMIN_TOKEN) console.log('No ADMIN_TOKEN set: admin only from this machine.');
 });

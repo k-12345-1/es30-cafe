@@ -1,0 +1,233 @@
+/* The admin screen is a working tool, so it gets a wider, plainer layout than
+   the storefront while keeping the same palette and hand. */
+
+.admin-body { background: var(--cream); }
+
+.admin {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+.admin-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.admin-head h1 {
+  font-family: var(--hand);
+  -webkit-text-stroke: 1.1px var(--ink);
+  font-size: clamp(26px, 5vw, 34px);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.admin-head a { color: var(--ink); font-size: 16px; }
+
+.panel { margin-bottom: 40px; }
+
+.panel h2 {
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.5px var(--ink);
+  font-size: 21px;
+  margin: 0 0 14px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.panel-head h2 { margin: 0; }
+
+.panel-note { font-size: 14px; opacity: 0.7; margin: 0 0 12px; }
+
+/* ---------- sign in ---------- */
+
+.signin { max-width: 360px; }
+
+.signin label {
+  font-size: 13px;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.signin input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+}
+
+.signin input:focus { outline: none; border-color: var(--ink); }
+.signin .pay { width: auto; padding: 13px 34px; }
+
+/* ---------- takings ---------- */
+
+.tiles { display: flex; flex-wrap: wrap; gap: 14px; }
+
+.tile {
+  flex: 1 1 200px;
+  border: 2.5px solid var(--hair);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.tile-value {
+  font-family: var(--hand);
+  -webkit-text-stroke: 0.4px var(--ink);
+  font-size: 30px;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.tile-label { font-size: 13px; opacity: 0.7; margin: 4px 0 0; }
+
+/* ---------- rows ---------- */
+
+.stock-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 2px dotted var(--dot);
+}
+
+.stock-name { flex: 1; min-width: 0; font-size: 17px; }
+.stock-where { font-size: 12px; opacity: 0.55; display: block; }
+.stock-left { font-size: 13px; opacity: 0.6; white-space: nowrap; }
+
+.stock-row input {
+  width: 78px;
+  flex: none;
+  padding: 9px 10px;
+  text-align: center;
+  font-size: 17px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  margin: 0;
+}
+
+.stock-row input:focus { outline: none; border-color: var(--ink); }
+
+.remove {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--hair);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.remove:hover { background: #9c4221; border-color: #9c4221; color: var(--cream); }
+
+/* ---------- add an item ---------- */
+
+.add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld-wide { grid-column: 1 / -1; }
+
+.fld span {
+  font-size: 13px;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
+}
+
+.fld input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 16px;
+  margin: 0;
+}
+
+.fld input:focus { outline: none; border-color: var(--ink); }
+
+/* ---------- lists ---------- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) transparent;
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 2px dotted var(--dot);
+  font-size: 15px;
+}
+
+.list-main { min-width: 0; }
+.list-sub { font-size: 12.5px; opacity: 0.6; margin-top: 2px; }
+.list-right { white-space: nowrap; font-size: 14px; opacity: 0.75; }
+
+.ghost-pill {
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 14px;
+  padding: 7px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.ghost-pill:hover { background: var(--ink); color: var(--cream); }
+
+/* ---------- shared bits ---------- */
+
+/* Save and Add sit centred under what they act on. */
+.admin-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 22px;
+}
+
+.admin-actions .pay { width: auto; padding: 14px 44px; }
+
+.admin-msg { font-size: 15px; margin: 12px 0 0; text-align: center; min-height: 22px; }
+.admin-msg.bad { color: #9c4221; }
+
+.field-error { color: #9c4221; font-size: 14px; margin: 10px 0 0; min-height: 20px; }
