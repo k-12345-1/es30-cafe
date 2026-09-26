@@ -30,6 +30,11 @@ const menu = MENU.map((section) => ({
 
 let body = html.split('<body>')[1].split('<script src="app.js">')[0].trim();
 
+// The artwork rides along as a data URI: one file to publish, and nothing to
+// go missing on a host that only serves the page itself.
+const hero = fs.readFileSync('public/hero.png').toString('base64');
+body = body.replace('src="hero.png"', `src="data:image/png;base64,${hero}"`);
+
 // The static build never takes a payment, so Stripe.js is not carried into it.
 body = body.replace(/\n?\s*<script src="https:\/\/js\.stripe\.com[^>]*><\/script>/g, '');
 body = body.replace('  </div>\n</div>',

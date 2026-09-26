@@ -123,9 +123,15 @@ body {
 
 .art { color: var(--ink); display: block; }
 
+/* The opening artwork. It carries the banner and the drawing together, so it
+   is sized to leave the button clear of the fold on a short screen. */
 .art-splash {
+  display: block;
   width: 100%;
   max-width: 100%;
+  height: auto;
+  max-height: 72svh;
+  object-fit: contain;
   margin: 0 auto;
 }
 
@@ -729,15 +735,13 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   margin: 20px auto 14px;
 }
 
-/* Same guard for the splash drawing. */
-/* Real ratio of the drawing, plus a height cap so a short screen (landscape
-   phone, small laptop) shrinks the art instead of pushing the button off. */
+/* The artwork's own ratio, with a height cap so a short screen (landscape
+   phone, small laptop) shrinks it instead of pushing the button off. */
 .art-splash {
   flex: none;
-  /* viewBox is cropped to the drawing, so no dead space around it. */
-  aspect-ratio: 252 / 184;
+  aspect-ratio: 1000 / 1490;
   height: auto;
-  max-height: 46svh;
+  max-height: 64svh;
 }
 
 .order-number .hash {
@@ -938,7 +942,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
    sheet, still fit without scrolling. */
 @media (max-height: 620px) {
   .screen { padding-top: 20px; padding-bottom: 22px; }
-  .art-splash { max-height: 40svh; margin: 4px auto; }
+  .art-splash { max-height: 52svh; margin: 4px auto; }
   .ribbon .r4 { font-size: 24px; padding: 7px 30px; }
   .ghost-btn { font-size: 22px; padding-top: 4px; }
   .section-title { margin-top: 26px; font-size: 27px; }
@@ -975,7 +979,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 /* Landscape phones. Very little height, so the splash gets the minimum it needs. */
 @media (max-height: 440px) {
   .screen { padding-top: 14px; padding-bottom: 16px; }
-  .art-splash { max-height: 34svh; margin: 2px auto; }
+  .art-splash { max-height: 48svh; margin: 2px auto; }
   .ribbon .r4 { font-size: 20px; padding: 6px 24px; }
   .ghost-btn { font-size: 19px; padding: 4px 6px 2px; }
   .order-number { font-size: 52px; }
