@@ -136,25 +136,23 @@ body {
 .art-banner { width: min(100%, 340px); }
 .art-drink-wrap { width: min(88%, 300px); max-width: calc(40svh * 760 / 543); }
 
-/* The drawing carries a maker's mark on the face of the can. The wrapper is
-   the size of the picture, so the mark is placed as a share of it and holds
-   its spot whatever the screen does. */
+/* The drawing carries a maker's mark at the foot of the can. The wrapper is
+   the size of the picture and the mark is drawn in the picture's own
+   coordinates, so it keeps its spot whatever the screen does. */
 .art-drink-wrap {
   position: relative;
   display: block;
   margin: 0 auto;
-  container-type: inline-size;
   line-height: 0;
 }
 
 .maker {
   position: absolute;
-  right: 23.5%;
-  bottom: 20.5%;
-  font-size: 3.4cqw;
-  line-height: 1.15;
-  text-align: right;
-  letter-spacing: 0.02em;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--hand);
+  fill: var(--ink);
   opacity: 0.75;
 }
 

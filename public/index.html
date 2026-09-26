@@ -34,7 +34,14 @@
         <img class="art-banner" src="banner.png" alt="ES30 Cafe" width="900" height="256">
         <span class="art-drink-wrap">
           <img class="art-drink" src="drink.png" alt="" width="760" height="543">
-          <span class="maker" aria-label="Made by KNR">Made by<br>KNR</span>
+          <!-- The maker's mark, set on the can's own base line: the curve is
+               traced off the drawing and lifted, so the letters lean with it. -->
+          <svg class="maker" viewBox="0 0 760 543" aria-hidden="true">
+            <path id="canBand" d="M 480 439 L 484 440 L 488 440 L 492 441 L 496 441 L 500 442 L 504 442 L 508 442 L 512 442 L 516 442 L 520 442 L 524 442 L 528 441 L 532 441 L 536 441 L 540 440 L 544 440 L 548 439 L 552 439 L 556 438 L 560 437 L 564 435 L 568 434 L 572 433 L 576 431 L 580 429 L 584 427 L 588 425" fill="none"></path>
+            <text font-size="18">
+              <textPath href="#canBand" startOffset="50%" text-anchor="middle">Made by KNR</textPath>
+            </text>
+          </svg>
         </span>
 
         <button class="ghost-btn" id="viewMenu">View Menu</button>
