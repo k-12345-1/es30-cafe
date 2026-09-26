@@ -33,7 +33,18 @@
   }
   .left { display: flex; flex-direction: column; align-items: center; gap: 44px; }
   .banner { width: 660px; }
-  .goods { width: 400px; }
+  .goods { width: 400px; display: block; }
+
+  .goods-wrap { position: relative; display: block; line-height: 0; }
+  .mark {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    font-family: var(--hand);
+    fill: var(--ink);
+    opacity: 0.75;
+  }
 
   .right { display: flex; flex-direction: column; align-items: center; gap: 28px; }
   .qr-card {
@@ -65,7 +76,18 @@
 <div class="top">
   <div class="left">
     <img class="banner" src="../public/banner.png" alt="ES30 Cafe">
-    <img class="goods" src="../public/drink.png" alt="">
+    <span class="goods-wrap">
+      <img class="goods" src="../public/drink.png" alt="">
+      <!-- The mark sits on the face of the can, bent to the same shallow sag
+           its painted bands have: the base line of the drawing drops about six
+           units across this span and lifts again at the corner. -->
+      <svg class="mark" viewBox="0 0 760 543" aria-hidden="true">
+        <path id="canBand" d="M 468 398 Q 524 410 578 399" fill="none"/>
+        <text font-size="18">
+          <textPath href="#canBand" startOffset="50%" text-anchor="middle">Made by KNR</textPath>
+        </text>
+      </svg>
+    </span>
     <p class="tag">Want a snack or drink during ES30 lecture?<br>Order from ES30 CAFE!</p>
   </div>
   <div class="right">
