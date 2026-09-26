@@ -279,7 +279,25 @@ body {
   transition: background 150ms ease;
 }
 
-.row-qty button:hover { background: rgba(255, 235, 175, 0.24); }
+.row-qty button:hover:not(:disabled) { background: rgba(255, 235, 175, 0.24); }
+
+.row-qty button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Stock notes: sold out in place of the control, and a quiet line under the
+   item when it is down to the last few. */
+.sold-out {
+  font-size: 14px;
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.row-stock {
+  font-size: 12.5px;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+  margin: 3px 0 0;
+}
 
 .row-qty span {
   min-width: 20px;

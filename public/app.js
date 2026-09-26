@@ -65,25 +65,60 @@ async function loadMenu() {
 function renderMenuQuantities() {
   for (const ctl of document.querySelectorAll('.row-ctl')) {
     const id = ctl.dataset.id;
+    const item = state.items[id];
     const qty = state.cart.get(id) || 0;
-    const name = state.items[id].name;
+    const left = item.available ?? 0;
+    const name = item.name;
+
+    // key includes the limit so a row redraws when stock changes under it
+    const key = `${qty}/${left}`;
+    if (ctl.dataset.key === key) continue;
+    const isNew = qty > 0 && (ctl.dataset.key || '').startsWith('0/');
+    ctl.dataset.key = key;
+
+    if (left <= 0 && qty === 0) {
+      ctl.innerHTML = '<span class="sold-out">sold out</span>';
+      continue;
+    }
 
     if (qty === 0) {
-      if (ctl.dataset.qty === '0') continue;
-      ctl.dataset.qty = '0';
       ctl.innerHTML = `<button class="add" data-delta="1" aria-label="Add ${name} to cart">+</button>`;
       continue;
     }
 
-    if (ctl.dataset.qty === String(qty)) continue;
-    const isNew = ctl.dataset.qty === '0' || ctl.dataset.qty === undefined;
-    ctl.dataset.qty = String(qty);
+    const atLimit = qty >= left;
     ctl.innerHTML = `
       <div class="row-qty${isNew ? ' pop' : ''}">
         <button data-delta="-1" aria-label="Remove one ${name}">&minus;</button>
-        <span aria-live="polite" aria-label="${qty} in cart">${qty}</span>
-        <button data-delta="1" aria-label="Add one ${name}">+</button>
+        <span aria-live="polite" aria-label="${qty} of ${left} in cart">${qty}</span>
+        <button data-delta="1" aria-label="Add one ${name}"${atLimit ? ' disabled aria-disabled="true"' : ''}>+</button>
       </div>`;
+  }
+
+  renderStockNotes();
+}
+
+// A quiet line under an item once it is the last few, or all of them are in the
+// cart already, so the disabled plus is never a mystery.
+function renderStockNotes() {
+  for (const row of document.querySelectorAll('.row')) {
+    const id = row.querySelector('.row-ctl').dataset.id;
+    const item = state.items[id];
+    const left = item.available ?? 0;
+    const qty = state.cart.get(id) || 0;
+    let note = '';
+
+    if (left > 0 && qty >= left) note = `that is all ${left} we have`;
+    else if (left > 0 && left <= 3) note = `only ${left} left`;
+
+    let el = row.querySelector('.row-stock');
+    if (!note) { if (el) el.remove(); continue; }
+    if (!el) {
+      el = document.createElement('p');
+      el.className = 'row-stock';
+      row.appendChild(el);
+    }
+    if (el.textContent !== note) el.textContent = note;
   }
 }
 
@@ -102,8 +137,10 @@ function renderSite(site) {
 /* ---------- cart ---------- */
 
 function setQty(id, qty) {
-  if (qty <= 0) state.cart.delete(id);
-  else state.cart.set(id, qty);
+  const left = state.items[id]?.available ?? 0;
+  const capped = Math.min(qty, left);
+  if (capped <= 0) state.cart.delete(id);
+  else state.cart.set(id, capped);
   persist();
   renderCart();
 }
@@ -172,7 +209,10 @@ function restore() {
   try {
     const saved = JSON.parse(localStorage.getItem('es30.cart') || '[]');
     for (const [id, qty] of saved) {
-      if (state.items[id] && qty > 0) state.cart.set(id, qty);
+      // stock may have moved since this cart was saved
+      const left = state.items[id]?.available ?? 0;
+      const keep = Math.min(qty, left);
+      if (keep > 0) state.cart.set(id, keep);
     }
   } catch { /* nothing saved */ }
 }
@@ -222,6 +262,31 @@ el('viewMenu').addEventListener('click', () => {
   updateCartBar();
 });
 
+// Pull the current counts without redrawing the whole menu.
+async function refreshAvailability() {
+  try {
+    const res = await fetch('/api/menu');
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const section of data.menu) {
+      for (const group of section.groups) {
+        for (const item of group.items) {
+          if (state.items[item.id]) state.items[item.id].available = item.available;
+        }
+      }
+    }
+    for (const [id, qty] of [...state.cart]) {
+      const left = state.items[id]?.available ?? 0;
+      if (qty > left) {
+        if (left > 0) state.cart.set(id, left);
+        else state.cart.delete(id);
+      }
+    }
+    persist();
+    renderCart();
+  } catch { /* offline; leave the page as it is */ }
+}
+
 /* ---------- checkout ---------- */
 
 el('checkoutForm').addEventListener('submit', async (e) => {
@@ -248,7 +313,11 @@ el('checkoutForm').addEventListener('submit', async (e) => {
       })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Checkout failed.');
+    if (!res.ok) {
+      // Someone else may have taken the last one while this cart sat open.
+      await refreshAvailability();
+      throw new Error(data.error || 'Checkout failed.');
+    }
 
     // The cart has been handed to Stripe. Clear it so a back button does not
     // leave a stale order sitting in the sheet.

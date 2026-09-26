@@ -1,9 +1,9 @@
 <title>ES30 Cafe</title>
 <!--
   Static build of the storefront, served by GitHub Pages.
-  The menu is inlined and checkout is simulated in the page, because Pages
-  cannot run the Node server. For real Stripe payments run the app itself:
-  npm install && npm start  (see README.md)
+  Checkout is simulated in the page and stock resets on reload, because a static
+  host cannot run the Node server. For real payments and real stock, run the app:
+  npm install && npm start   (see README.md)
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -290,7 +290,25 @@ body {
   transition: background 150ms ease;
 }
 
-.row-qty button:hover { background: rgba(255, 235, 175, 0.24); }
+.row-qty button:hover:not(:disabled) { background: rgba(255, 235, 175, 0.24); }
+
+.row-qty button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Stock notes: sold out in place of the control, and a quiet line under the
+   item when it is down to the last few. */
+.sold-out {
+  font-size: 14px;
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.row-stock {
+  font-size: 12.5px;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+  margin: 3px 0 0;
+}
 
 .row-qty span {
   min-width: 20px;
@@ -884,7 +902,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 </div>
 
 <script>
-const PREVIEW_DATA = {"menu": [{"section": "Drinks", "groups": [{"title": "", "items": [{"id": "celsius", "name": "Celsius", "price": 500}, {"id": "waiter", "name": "Bottle of WAiTER", "price": 1000, "desc": "A bottle of water with AI in it to give you the perfect level of hydration."}]}]}, {"section": "Snacks", "groups": [{"title": "Sweet", "items": [{"id": "cookies-2", "name": "2 Chocolate Chip Cookies", "price": 500}, {"id": "oreos", "name": "Oreos", "price": 100}]}, {"title": "Savory", "items": [{"id": "doritos-cool-ranch", "name": "Cool Ranch Doritos", "price": 300}, {"id": "doritos-nacho", "name": "Nacho Cheese Doritos", "price": 300}, {"id": "cheetos-crunchy", "name": "Cheetos Crunchy", "price": 300}, {"id": "popcorn-white-ched", "name": "White Cheddar Popcorn", "price": 300}, {"id": "lays-classic", "name": "Classic Lays", "price": 300}, {"id": "sunchips-harvest", "name": "Harvest Cheddar Sun Chips", "price": 300}]}]}], "site": {"hours": "", "address": "", "email": "", "footnote": ""}, "currency": "usd", "demo": true};
+const PREVIEW_DATA = {"menu":[{"section":"Drinks","groups":[{"title":"","items":[{"id":"celsius","name":"Celsius","price":500,"available":12},{"id":"waiter","name":"Bottle of WAiTER","price":1000,"desc":"A bottle of water with AI in it to give you the perfect level of hydration.","available":12}]}]},{"section":"Snacks","groups":[{"title":"Sweet","items":[{"id":"cookies-2","name":"2 Chocolate Chip Cookies","price":500,"available":12},{"id":"oreos","name":"Oreos","price":100,"available":12}]},{"title":"Savory","items":[{"id":"doritos-cool-ranch","name":"Cool Ranch Doritos","price":300,"available":12},{"id":"doritos-nacho","name":"Nacho Cheese Doritos","price":300,"available":12},{"id":"cheetos-crunchy","name":"Cheetos Crunchy","price":300,"available":12},{"id":"popcorn-white-ched","name":"White Cheddar Popcorn","price":300,"available":12},{"id":"lays-classic","name":"Classic Lays","price":300,"available":12},{"id":"sunchips-harvest","name":"Harvest Cheddar Sun Chips","price":300,"available":12}]}]}],"site":{"hours":"","address":"","email":"","footnote":""},"currency":"usd","demo":true};
 
 const state = { cart: new Map(), items: {}, currency: 'usd', demo: false };
 
@@ -952,25 +970,60 @@ async function loadMenu() {
 function renderMenuQuantities() {
   for (const ctl of document.querySelectorAll('.row-ctl')) {
     const id = ctl.dataset.id;
+    const item = state.items[id];
     const qty = state.cart.get(id) || 0;
-    const name = state.items[id].name;
+    const left = item.available ?? 0;
+    const name = item.name;
+
+    // key includes the limit so a row redraws when stock changes under it
+    const key = `${qty}/${left}`;
+    if (ctl.dataset.key === key) continue;
+    const isNew = qty > 0 && (ctl.dataset.key || '').startsWith('0/');
+    ctl.dataset.key = key;
+
+    if (left <= 0 && qty === 0) {
+      ctl.innerHTML = '<span class="sold-out">sold out</span>';
+      continue;
+    }
 
     if (qty === 0) {
-      if (ctl.dataset.qty === '0') continue;
-      ctl.dataset.qty = '0';
       ctl.innerHTML = `<button class="add" data-delta="1" aria-label="Add ${name} to cart">+</button>`;
       continue;
     }
 
-    if (ctl.dataset.qty === String(qty)) continue;
-    const isNew = ctl.dataset.qty === '0' || ctl.dataset.qty === undefined;
-    ctl.dataset.qty = String(qty);
+    const atLimit = qty >= left;
     ctl.innerHTML = `
       <div class="row-qty${isNew ? ' pop' : ''}">
         <button data-delta="-1" aria-label="Remove one ${name}">&minus;</button>
-        <span aria-live="polite" aria-label="${qty} in cart">${qty}</span>
-        <button data-delta="1" aria-label="Add one ${name}">+</button>
+        <span aria-live="polite" aria-label="${qty} of ${left} in cart">${qty}</span>
+        <button data-delta="1" aria-label="Add one ${name}"${atLimit ? ' disabled aria-disabled="true"' : ''}>+</button>
       </div>`;
+  }
+
+  renderStockNotes();
+}
+
+// A quiet line under an item once it is the last few, or all of them are in the
+// cart already, so the disabled plus is never a mystery.
+function renderStockNotes() {
+  for (const row of document.querySelectorAll('.row')) {
+    const id = row.querySelector('.row-ctl').dataset.id;
+    const item = state.items[id];
+    const left = item.available ?? 0;
+    const qty = state.cart.get(id) || 0;
+    let note = '';
+
+    if (left > 0 && qty >= left) note = `that is all ${left} we have`;
+    else if (left > 0 && left <= 3) note = `only ${left} left`;
+
+    let el = row.querySelector('.row-stock');
+    if (!note) { if (el) el.remove(); continue; }
+    if (!el) {
+      el = document.createElement('p');
+      el.className = 'row-stock';
+      row.appendChild(el);
+    }
+    if (el.textContent !== note) el.textContent = note;
   }
 }
 
@@ -989,8 +1042,10 @@ function renderSite(site) {
 /* ---------- cart ---------- */
 
 function setQty(id, qty) {
-  if (qty <= 0) state.cart.delete(id);
-  else state.cart.set(id, qty);
+  const left = state.items[id]?.available ?? 0;
+  const capped = Math.min(qty, left);
+  if (capped <= 0) state.cart.delete(id);
+  else state.cart.set(id, capped);
   persist();
   renderCart();
 }
@@ -1059,7 +1114,10 @@ function restore() {
   try {
     const saved = JSON.parse(localStorage.getItem('es30.cart') || '[]');
     for (const [id, qty] of saved) {
-      if (state.items[id] && qty > 0) state.cart.set(id, qty);
+      // stock may have moved since this cart was saved
+      const left = state.items[id]?.available ?? 0;
+      const keep = Math.min(qty, left);
+      if (keep > 0) state.cart.set(id, keep);
     }
   } catch { /* nothing saved */ }
 }
@@ -1109,12 +1167,37 @@ el('viewMenu').addEventListener('click', () => {
   updateCartBar();
 });
 
+// Pull the current counts without redrawing the whole menu.
+async function refreshAvailability() {
+  try {
+    const res = await fetch('/api/menu');
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const section of data.menu) {
+      for (const group of section.groups) {
+        for (const item of group.items) {
+          if (state.items[item.id]) state.items[item.id].available = item.available;
+        }
+      }
+    }
+    for (const [id, qty] of [...state.cart]) {
+      const left = state.items[id]?.available ?? 0;
+      if (qty > left) {
+        if (left > 0) state.cart.set(id, left);
+        else state.cart.delete(id);
+      }
+    }
+    persist();
+    renderCart();
+  } catch { /* offline; leave the page as it is */ }
+}
+
 /* ---------- checkout ---------- */
 
 
 /* ---------- checkout, simulated ----------
-   The live site posts the cart to the server, which prices it and hands off to
-   Stripe. This build prices it in the page and jumps straight to the ticket. */
+   The real site posts the cart to the server, which re-checks stock, prices the
+   order and hands off to Stripe. This build does it in the page. */
 
 let previewOrders = 0;
 
@@ -1139,10 +1222,17 @@ el('checkoutForm').addEventListener('submit', (e) => {
   const name = el('name').value.trim();
   el('err').textContent = '';
   if (!name) { el('err').textContent = 'Please enter a name for the order.'; return; }
+
   const lines = [...state.cart].map(([id, qty]) => {
     const item = state.items[id];
-    return { name: item.name, qty, total: item.price * qty };
+    return { id, name: item.name, qty, total: item.price * qty };
   });
+
+  // Take the stock, the way the server would once the order is paid.
+  for (const line of lines) {
+    state.items[line.id].available = Math.max(0, state.items[line.id].available - line.qty);
+  }
+
   showTicket({ orderNumber: ++previewOrders, name, lines, total: cartTotal() });
 });
 

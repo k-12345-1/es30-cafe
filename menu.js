@@ -16,6 +16,10 @@ export const SITE = {
 
 // Sections hold groups, groups hold items. A group with an empty title just
 // renders its items with no sub-heading above them.
+//
+// `stock` is only the STARTING count, used to seed stock.json the first time the
+// server runs. After that the live count lives in stock.json and is changed from
+// the staff page at /admin, not here.
 export const MENU = [
   {
     section: 'Drinks',
@@ -23,11 +27,12 @@ export const MENU = [
       {
         title: '',
         items: [
-          { id: 'celsius', name: 'Celsius',          price: 500 },
+          { id: 'celsius', name: 'Celsius', price: 500, stock: 12 },
           {
             id: 'waiter',
             name: 'Bottle of WAiTER',
             price: 1000,
+            stock: 12,
             desc: 'A bottle of water with AI in it to give you the perfect level of hydration.'
           }
         ]
@@ -40,19 +45,19 @@ export const MENU = [
       {
         title: 'Sweet',
         items: [
-          { id: 'cookies-2', name: '2 Chocolate Chip Cookies', price: 500 },
-          { id: 'oreos',     name: 'Oreos',     price: 100 }
+          { id: 'cookies-2', name: '2 Chocolate Chip Cookies', price: 500, stock: 12 },
+          { id: 'oreos', name: 'Oreos', price: 100, stock: 12 }
         ]
       },
       {
         title: 'Savory',
         items: [
-          { id: 'doritos-cool-ranch', name: 'Cool Ranch Doritos',        price: 300 },
-          { id: 'doritos-nacho',      name: 'Nacho Cheese Doritos',      price: 300 },
-          { id: 'cheetos-crunchy',    name: 'Cheetos Crunchy',           price: 300 },
-          { id: 'popcorn-white-ched', name: 'White Cheddar Popcorn',     price: 300 },
-          { id: 'lays-classic',       name: 'Classic Lays',              price: 300 },
-          { id: 'sunchips-harvest',   name: 'Harvest Cheddar Sun Chips', price: 300 }
+          { id: 'doritos-cool-ranch', name: 'Cool Ranch Doritos',        price: 300, stock: 12 },
+          { id: 'doritos-nacho',      name: 'Nacho Cheese Doritos',      price: 300, stock: 12 },
+          { id: 'cheetos-crunchy',    name: 'Cheetos Crunchy',           price: 300, stock: 12 },
+          { id: 'popcorn-white-ched', name: 'White Cheddar Popcorn',     price: 300, stock: 12 },
+          { id: 'lays-classic',       name: 'Classic Lays',              price: 300, stock: 12 },
+          { id: 'sunchips-harvest',   name: 'Harvest Cheddar Sun Chips', price: 300, stock: 12 }
         ]
       }
     ]

@@ -80,6 +80,42 @@ export const SITE = {
 };
 ```
 
+## Stock
+
+Every item has a count. Customers cannot order more than that count, and it
+drops as orders are paid for, so twelve Celsius cannot become thirteen orders.
+
+Set the counts at **/admin.html** on the running site. The starting counts come
+from the `stock` value on each item in `menu.js`, used only to seed `stock.json`
+the first time the server runs; after that `stock.json` is the live record and
+the staff page is how you change it.
+
+On the storefront an item that runs out shows "sold out" instead of a plus, the
+plus is disabled once the cart holds all that is left, and a line appears under
+an item when it is down to the last three.
+
+### How it holds together
+
+- Availability is the on-hand count minus what unpaid checkouts are holding.
+- Starting a checkout reserves its items for 30 minutes, matching the Stripe
+  session expiry, so two people cannot both buy the last one while the first is
+  still paying. The reservation lapses on its own if the payment never lands.
+- The count is only actually reduced once the order is paid.
+- Every read-modify-write of stock and orders is serialized, so simultaneous
+  checkouts cannot read the same count and each think they got the last one.
+
+### Who can change the counts
+
+With no `ADMIN_TOKEN` set, the counts can only be changed from the machine the
+server is running on, which suits a till behind the counter. Set `ADMIN_TOKEN`
+in `.env` before putting this anywhere other people can reach:
+
+```
+ADMIN_TOKEN=some-long-random-string
+```
+
+The staff page then asks for that code and remembers it in the browser.
+
 ## Editing the menu
 
 `MENU` in `menu.js` is sections, each holding groups, each holding items:
@@ -114,12 +150,27 @@ with a real database.
 
 ## Files
 
-- `server.js` — Express server, Stripe session creation, order lookup
-- `menu.js` — the menu and its prices
+- `server.js` — Express server, stock, Stripe session creation, order lookup
+- `menu.js` — the menu, prices and starting stock
+- `stock.json` — the live count per item, written by the server (not in git)
+- `build-static.mjs` — builds `docs/index.html`, the static copy for GitHub Pages
 - `public/index.html` — splash and menu
 - `public/app.js` — cart, sheet, checkout
 - `public/success.html` — order number confirmation
+- `public/admin.html` — the staff page for setting stock
 - `public/styles.css` — all styling, colors at the top
+
+## The GitHub Pages copy
+
+`docs/index.html` is a standalone build served at the Pages URL. It has no
+server, so checkout is simulated and stock resets on reload. Rebuild it after
+changing the menu or the design:
+
+```bash
+node build-static.mjs
+```
+
+Then commit and push; Pages redeploys on its own.
 
 ## Before taking real money
 

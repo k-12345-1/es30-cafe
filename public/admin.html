@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stock &middot; ES30 Cafe</title>
+<meta name="theme-color" content="#4C9DB0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .stock-page {
+    max-width: 560px;
+    margin: 28px auto;
+    padding: 34px 28px 42px;
+    background: var(--cream);
+    border-radius: 28px;
+    box-shadow: 0 20px 48px rgba(20, 58, 67, 0.3);
+  }
+
+  @media (max-width: 620px) {
+    .stock-page { margin: 0; border-radius: 0; min-height: 100svh; }
+  }
+
+  .stock-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 4px;
+  }
+
+  .stock-head h1 {
+    font-family: var(--hand);
+    -webkit-text-stroke: 1.1px var(--ink);
+    font-size: 31px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .stock-head a { color: var(--ink); font-size: 15px; }
+
+  .stock-intro { font-size: 15px; opacity: 0.75; margin: 0 0 24px; line-height: 1.5; }
+
+  .stock-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 2px dotted var(--dot);
+  }
+
+  .stock-name { flex: 1; font-size: 17px; }
+
+  .stock-left {
+    font-size: 13px;
+    opacity: 0.6;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  .stock-row input,
+  .token-row input {
+    border: 2.5px solid var(--hair);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--hand);
+  }
+
+  .stock-row input:focus,
+  .token-row input:focus { outline: none; border-color: var(--ink); }
+
+  .stock-row input {
+    width: 88px;
+    margin: 0;
+    padding: 9px 12px;
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+  }
+
+  .token-row input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+  }
+
+  .stock-actions { display: flex; align-items: center; gap: 16px; margin-top: 26px; }
+  .stock-actions .pay { width: auto; padding: 14px 34px; }
+  .stock-msg { font-size: 15px; min-height: 22px; }
+  .stock-msg.bad { color: #9c4221; }
+
+  .token-row { margin: 0 0 22px; }
+  .token-row input { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<main class="stock-page">
+  <div class="stock-head">
+    <h1>Stock</h1>
+    <a href="/">back to the cafe</a>
+  </div>
+  <p class="stock-intro">
+    How many of each you have to sell. Customers cannot order more than this, and
+    the count drops as orders come in.
+  </p>
+
+  <div class="token-row" id="tokenRow" hidden>
+    <label for="token">Staff code</label>
+    <input type="password" id="token" autocomplete="current-password" placeholder="Staff code">
+  </div>
+
+  <form id="stockForm">
+    <div id="stockList"></div>
+    <div class="stock-actions">
+      <button class="pay ready" type="submit" id="saveBtn">Save</button>
+      <span class="stock-msg" id="msg"></span>
+    </div>
+  </form>
+</main>
+
+<script>
+const el = (id) => document.getElementById(id);
+const TOKEN_KEY = 'es30.staffToken';
+
+const headers = () => {
+  const token = el('token').value.trim();
+  return token ? { Authorization: 'Bearer ' + token } : {};
+};
+
+function say(text, bad) {
+  el('msg').textContent = text;
+  el('msg').classList.toggle('bad', Boolean(bad));
+}
+
+async function load() {
+  try { el('token').value = localStorage.getItem(TOKEN_KEY) || ''; } catch {}
+
+  const res = await fetch('/api/stock', { headers: headers() });
+
+  if (res.status === 401) {
+    el('tokenRow').hidden = false;
+    const body = await res.json().catch(() => ({}));
+    say(body.error || 'Enter the staff code, then Save to load the counts.', true);
+    return;
+  }
+
+  const data = await res.json();
+  el('tokenRow').hidden = !data.needsToken;
+
+  el('stockList').innerHTML = data.items.map((item) => `
+    <div class="stock-row">
+      <label class="stock-name" for="qty-${item.id}">${item.name}</label>
+      <span class="stock-left">${item.available} on sale</span>
+      <input type="number" id="qty-${item.id}" name="${item.id}"
+             value="${item.onHand}" min="0" max="9999" step="1" inputmode="numeric">
+    </div>`).join('');
+
+  say('');
+}
+
+el('stockForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const counts = {};
+  for (const input of el('stockList').querySelectorAll('input')) {
+    counts[input.name] = Number(input.value);
+  }
+
+  el('saveBtn').disabled = true;
+  say('Saving');
+
+  try {
+    const res = await fetch('/api/stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers() },
+      body: JSON.stringify({ counts })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not save.');
+
+    try { localStorage.setItem(TOKEN_KEY, el('token').value.trim()); } catch {}
+    await load();
+    say('Saved');
+  } catch (err) {
+    say(err.message, true);
+  } finally {
+    el('saveBtn').disabled = false;
+  }
+});
+
+load();
+</script>
+</body>
+</html>
