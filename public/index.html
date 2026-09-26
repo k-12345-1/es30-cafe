@@ -40,7 +40,7 @@
       <!-- ---------- screen two: the menu ---------- -->
       <section class="screen menu" id="menu">
         <!-- The break clock. Hidden until staff start one. -->
-        <div class="flipclock" id="breakClock">
+        <div class="flipclock" id="breakClock" hidden>
           <p class="flip-label">10-Minute Break Countdown</p>
           <div class="flip-row">
             <span class="flip" data-slot="0"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
@@ -49,8 +49,10 @@
             <span class="flip" data-slot="2"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
             <span class="flip" data-slot="3"><span class="face top">0</span><span class="face bottom" data-value="0"></span><span class="leaf leaf-top">0</span><span class="leaf leaf-bottom" data-value="0"></span></span>
           </div>
-          <p class="clock-note" id="clockNote" hidden></p>
         </div>
+
+        <!-- Outside the clock, so it can speak on days the clock is not there. -->
+        <p class="clock-note" id="clockNote" hidden></p>
 
         <div id="menuBody"></div>
 

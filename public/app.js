@@ -97,6 +97,8 @@ window.addEventListener('resize', () => {
 let clockOffset = 0;        // server time minus this device's time
 let clockMode = 'closed';   // opening, soon, closing, closed: the server decides
 let clockTarget = null;     // the moment being counted to, when there is one
+let clockShown = null;      // null until the first answer from the server
+let nextOpensAt = null;     // when the doors are next due
 let clockTimer;
 
 let clockDrawn = false;
@@ -176,6 +178,27 @@ function paintClock(msLeft, mode) {
 
 function runClock() {
   clearInterval(clockTimer);
+
+  // Not a cafe day: no clock, just a line saying when to come back.
+  if (!clockShown) {
+    el('breakClock').hidden = true;
+    const note = el('clockNote');
+    if (!note) return;
+
+    if (nextOpensAt) {
+      const when = new Date(nextOpensAt);
+      note.textContent =
+        `Open ${when.toLocaleDateString(undefined, { weekday: 'long' })}s at ` +
+        `${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`;
+      note.classList.add('waiting');
+      note.hidden = false;
+    } else {
+      note.textContent = '';
+      note.hidden = true;
+    }
+    return;
+  }
+
   el('breakClock').hidden = false;
 
   // Nothing to count: the sign just sits there.
@@ -255,9 +278,12 @@ async function syncMenu() {
 
   const mode = data.clock?.mode || 'closed';
   const target = data.clock?.target || null;
-  if (mode !== clockMode || target !== clockTarget) {
+  const shown = data.clock?.show !== false;
+  nextOpensAt = data.nextOpensAt || null;
+  if (mode !== clockMode || target !== clockTarget || shown !== clockShown) {
     clockMode = mode;
     clockTarget = target;
+    clockShown = shown;
     runClock();
   }
   state.items = Object.fromEntries(

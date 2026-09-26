@@ -93,6 +93,9 @@ function cycle(at) {
    for whoever is already at the counter. */
 
 const SOON_HOLD_MINUTES = 120;
+// How long the closed sign stays up after a break, before the clock leaves the
+// menu altogether until the next one.
+const CLOSED_SIGN_MINUTES = 120;
 
 function cafeState(brk = {}, at = Date.now()) {
   const { countdownFrom, opensAt, nextCountdown } = cycle(at);
@@ -118,9 +121,22 @@ function cafeState(brk = {}, at = Date.now()) {
     mode = 'soon';
   }
 
+  // On any other day there is nothing to count, so the clock is not on the
+  // menu at all: it appears with the hour before opening and leaves a couple of
+  // hours after the break.
+  const show =
+    mode !== 'closed' || Boolean(endsAt && at < endsAt + CLOSED_SIGN_MINUTES * 60_000);
+
+  // The next time the doors are due, for a menu that is showing no clock.
+  const nextOpensAt = at < opensAt
+    ? opensAt
+    : nextCountdown + OPENS_LEAD_MINUTES * 60_000;
+
   return {
     mode,
     target,
+    show,
+    nextOpensAt,
     running,
     ordersOpen: running || Boolean(ordersCloseAt && at < ordersCloseAt),
     ordersCloseAt,
@@ -471,7 +487,8 @@ app.get('/api/menu', async (_req, res) => {
     ...(() => {
       const state = cafeState(brk);
       return {
-        clock: { mode: state.mode, target: state.target },
+        clock: { mode: state.mode, target: state.target, show: state.show },
+        nextOpensAt: state.nextOpensAt,
         ordersOpen: state.ordersOpen,
         ordersCloseAt: state.ordersCloseAt
       };
@@ -921,7 +938,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     ...(() => {
       const state = cafeState(brk);
       return {
-        clock: { mode: state.mode, target: state.target },
+        clock: { mode: state.mode, target: state.target, show: state.show },
         running: state.running,
         breakEndsAt: brk.endsAt || null,
         opensAt: state.opensAt,
