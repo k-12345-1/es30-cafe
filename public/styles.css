@@ -1013,6 +1013,11 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 
 #breakClock[hidden] { display: none; }
 
+/* Waiting for a break to start: the same cards, quietly. */
+.flipclock.resting .flip .face,
+.flipclock.resting .flip .leaf { background: var(--ink); opacity: 0.55; }
+.flipclock.resting .flip-label { opacity: 0.45; }
+
 .flip-label {
   margin: 0 0 8px;
   font-size: 13px;

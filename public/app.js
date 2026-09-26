@@ -98,6 +98,8 @@ let clockOffset = 0;        // server time minus this device's time
 let breakEndsAt = null;
 let clockTimer;
 
+let clockDrawn = false;
+
 function setDigit(flip, value) {
   const top = flip.querySelector('.top');
   const bottom = flip.querySelector('.bottom');
@@ -106,6 +108,13 @@ function setDigit(flip, value) {
 
   const current = top.textContent;
   if (current === value) return;
+
+  // The first paint is just the clock appearing, not a second passing.
+  if (!clockDrawn) {
+    top.textContent = value;
+    bottom.dataset.value = value;
+    return;
+  }
 
   // The leaf that falls carries the old digit; the one that lands carries the
   // new. The resting halves are set so the card reads correctly either side of
@@ -126,7 +135,7 @@ function setDigit(flip, value) {
   }, 540);
 }
 
-function paintClock(msLeft) {
+function paintClock(msLeft, resting = false) {
   const clock = el('breakClock');
   const left = Math.max(0, msLeft);
   const total = Math.ceil(left / 1000);
@@ -138,31 +147,38 @@ function paintClock(msLeft) {
   ].join('');
 
   clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
-  clock.classList.toggle('last-minute', left > 0 && left <= 60_000);
-  clock.classList.toggle('over', left === 0);
-  clock.querySelector('.flip-label').textContent = left === 0 ? 'break over' : 'break ends in';
+  clockDrawn = true;
+  clock.classList.toggle('resting', resting);
+  clock.classList.toggle('last-minute', !resting && left > 0 && left <= 60_000);
+  clock.classList.toggle('over', !resting && left === 0);
+
+  clock.querySelector('.flip-label').textContent =
+    resting ? 'the break' : left === 0 ? 'break over' : 'break ends in';
 }
+
+const BREAK_LENGTH_MS = 10 * 60_000;
 
 function runClock() {
   clearInterval(clockTimer);
   const clock = el('breakClock');
+  clock.hidden = false;
 
+  // Nothing running: the clock sits at the full ten minutes, waiting.
   if (!breakEndsAt) {
-    clock.hidden = true;
+    paintClock(BREAK_LENGTH_MS, true);
     return;
   }
 
   const tick = () => {
     const left = breakEndsAt - (Date.now() + clockOffset);
     paintClock(left);
-    if (left <= -30_000) {              // half a minute after the end, put it away
+    if (left <= -30_000) {          // half a minute after the end, back to waiting
       breakEndsAt = null;
-      clock.hidden = true;
       clearInterval(clockTimer);
+      runClock();
     }
   };
 
-  clock.hidden = false;
   tick();
   clockTimer = setInterval(tick, 250);
 }
@@ -216,7 +232,7 @@ async function syncMenu() {
   state.stripeKey = data.stripeKey || '';
 
   if (Number.isFinite(data.now)) clockOffset = data.now - Date.now();
-  if (data.breakEndsAt !== breakEndsAt) {
+  if (data.breakEndsAt !== breakEndsAt || !clockTimer) {
     breakEndsAt = data.breakEndsAt || null;
     runClock();
   }
