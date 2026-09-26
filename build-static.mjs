@@ -29,6 +29,9 @@ const menu = MENU.map((section) => ({
 }));
 
 let body = html.split('<body>')[1].split('<script src="app.js">')[0].trim();
+
+// The static build never takes a payment, so Stripe.js is not carried into it.
+body = body.replace(/\n?\s*<script src="https:\/\/js\.stripe\.com[^>]*><\/script>/g, '');
 body = body.replace('  </div>\n</div>',
   '\n    <div class="confirm" id="confirmScreen" hidden></div>\n  </div>\n</div>');
 
