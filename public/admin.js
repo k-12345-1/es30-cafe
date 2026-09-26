@@ -196,47 +196,27 @@ function when(value) {
 
 let breakTimer;
 
-function showOpens() {
-  const note = el('opensNote');
-  const clear = el('clearOpens');
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  if (!data.opensAt) {
-    note.textContent = `No opening time set. Set one and the clock counts down for the last ${data.opensLeadMinutes} minutes before it.`;
-    clear.hidden = true;
-    return;
-  }
-
-  const when = new Date(data.opensAt);
-  el('opensAt').value =
-    `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
-  note.textContent = `Opens at ${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}, ${when.toLocaleDateString(undefined, { weekday: 'long' })}.`;
-  clear.hidden = false;
+function clockTime(ms) {
+  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-el('setOpens').addEventListener('click', async () => {
-  const at = el('opensAt').value;
-  if (!at) return say('Pick a time first.', true);
-  try {
-    const res = await fetch('/api/opens', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...auth() },
-      body: JSON.stringify({ at })
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || 'Could not set that.');
-    await load();
-    say('Opening time set');
-  } catch (err) { say(err.message, true); }
-});
+// What the schedule does on its own, and whether the till is open right now.
+function showOpens() {
+  const note = el('opensNote');
+  const day = DAYS[data.schedule.weekday];
+  const [h, m] = data.schedule.time.split(':').map(Number);
+  const at = new Date();
+  at.setHours(h, m, 0, 0);
 
-el('clearOpens').addEventListener('click', async () => {
-  try {
-    const res = await fetch('/api/opens', { method: 'DELETE', headers: auth() });
-    if (!res.ok) throw new Error('Could not clear that.');
-    await load();
-    say('Opening time cleared');
-  } catch (err) { say(err.message, true); }
-});
+  const opens = `Opens by itself every ${day} at ${clockTime(at.getTime())} for ${data.breakMinutes} minutes, ` +
+    `and takes orders for ${data.graceMinutes} minutes after that.`;
+
+  note.textContent = data.ordersOpen
+    ? `${opens} Taking orders now, until ${clockTime(data.ordersCloseAt)}.`
+    : `${opens} Not taking orders: next break ${data.opensAt ? clockTime(data.opensAt) : 'soon'}.`;
+}
 
 function showBreak() {
   showOpens();

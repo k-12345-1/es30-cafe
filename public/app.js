@@ -1,4 +1,4 @@
-const state = { cart: new Map(), items: {}, currency: 'usd', demo: false, stripeKey: '' };
+const state = { cart: new Map(), items: {}, currency: 'usd', demo: false, stripeKey: '', ordersOpen: true };
 
 const el = (id) => document.getElementById(id);
 
@@ -160,6 +160,14 @@ function paintClock(msLeft, mode) {
     closed: 'ES30 Cafe is closed!'
   };
   clock.querySelector('.flip-label').textContent = labels[mode];
+
+  const note = el('clockNote');
+  if (note) {
+    note.textContent = state.ordersOpen
+      ? ''
+      : 'The counter is closed. Come back at the next break.';
+    note.hidden = state.ordersOpen;
+  }
 }
 
 const BREAK_LENGTH_MS = 10 * 60_000;
@@ -179,18 +187,19 @@ function runClock() {
   const tick = () => {
     const now = Date.now() + clockOffset;
 
-    if (breakEndsAt) {
-      const left = breakEndsAt - now;
-      paintClock(left, left > 0 ? 'closing' : 'closed');
-      if (left <= 0) clearInterval(clockTimer);     // the sign stays up
+    // Running: counting down to closing time.
+    if (breakEndsAt && breakEndsAt > now) {
+      paintClock(breakEndsAt - now, 'closing');
       return;
     }
 
+    // Not running: either the next break is close enough to count down to, or
+    // the cafe is simply shut.
     if (opensAt) {
       const until = opensAt - now;
       if (until <= 0) {
         paintClock(0, 'soon');
-        return;                                     // holds until the break starts
+        return;
       }
       if (until <= openingLeadMs) {
         paintClock(until, 'opening');
@@ -198,7 +207,10 @@ function runClock() {
       }
     }
 
-    paintClock(BREAK_LENGTH_MS, 'waiting');
+    paintClock(0, 'closed');
+    clearInterval(clockTimer);
+    // Keep a slow pulse so the hour before the next break still arrives.
+    clockTimer = setInterval(tick, 5000);
   };
 
   tick();
@@ -252,6 +264,9 @@ async function syncMenu() {
   state.currency = data.currency;
   state.demo = data.demo;
   state.stripeKey = data.stripeKey || '';
+
+  state.ordersOpen = data.ordersOpen !== false;
+  document.body.classList.toggle('shut', !state.ordersOpen);
 
   if (Number.isFinite(data.now)) clockOffset = data.now - Date.now();
   if (Number.isFinite(data.opensLeadMinutes)) openingLeadMs = data.opensLeadMinutes * 60_000;
@@ -328,11 +343,18 @@ function renderMenuQuantities() {
     const left = item.available ?? 0;
     const name = item.name;
 
-    // key includes the limit so a row redraws when stock changes under it
-    const key = `${qty}/${left}`;
+    // key includes the limit, and whether the counter is open, so a row redraws
+    // when either changes under it
+    const key = `${qty}/${left}/${state.ordersOpen ? 'open' : 'shut'}`;
     if (ctl.dataset.key === key) continue;
     const isNew = qty > 0 && (ctl.dataset.key || '').startsWith('0/');
     ctl.dataset.key = key;
+
+    if (!state.ordersOpen) {
+      ctl.innerHTML = '';
+      ctl.dataset.key = 'shut';
+      continue;
+    }
 
     if (left <= 0 && qty === 0) {
       ctl.innerHTML = '<span class="sold-out">sold out :(</span>';
@@ -482,7 +504,7 @@ function onMenuScreen() {
 }
 
 function updateCartBar() {
-  const showing = cartCount() > 0 && onMenuScreen();
+  const showing = cartCount() > 0 && onMenuScreen() && state.ordersOpen;
   el('cartBar').classList.toggle('show', showing);
   // Only hold room at the foot of the menu while the pill is there to clear.
   el('menu').classList.toggle('has-cart', showing);

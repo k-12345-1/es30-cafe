@@ -1154,6 +1154,21 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 .flipclock.last-minute .flip-colon::before,
 .flipclock.last-minute .flip-colon::after { background: var(--alert); }
 
+/* A word under the clock when the counter has shut. */
+.clock-note {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--alert);
+  -webkit-text-stroke: 0.25px var(--alert);
+}
+
+#clockNote[hidden] { display: none; }
+
+/* Shut: the menu is still readable, it just cannot be ordered from. */
+body.shut .row-ctl { min-width: 0; }
+body.shut .row-desc { opacity: 0.5; }
+
 /* Closed: the cards hold at zero and the sign stays up. */
 .flipclock.over .flip .face { background: var(--alert); }
 .flipclock.over .flip-colon::before,

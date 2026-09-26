@@ -13,6 +13,26 @@ to take real payments.
 A one-page storefront: logo splash, View Menu scrolls to the menu, add items from
 the button on the right, checkout with a name through Stripe, then an order number.
 
+## Opening hours
+
+The cafe opens by itself at **noon Eastern every Wednesday** and runs for ten
+minutes, the length of the ES30 break. Orders keep going through for five
+minutes after the clock runs out, for whoever is already at the counter, and
+then the till closes: the server refuses checkouts, so a stale tab cannot order
+after the counter has packed up.
+
+The clock at the top of the menu follows that: it counts down the hour before
+opening, counts the break down while it runs, and shows the closed sign after.
+Staff can start a break by hand from the dashboard for anything off schedule.
+
+Change the schedule with environment variables:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `OPEN_WEEKDAY` | `3` | 0 Sunday to 6 Saturday, so 3 is Wednesday |
+| `OPEN_TIME` | `12:00` | wall-clock time at the cafe |
+| `TZ` | `America/New_York` | what "noon" means |
+
 ## Look
 
 Built to the structure of the reference menu cards: a notched ribbon logo, a

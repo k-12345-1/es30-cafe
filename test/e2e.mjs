@@ -13,7 +13,9 @@ async function check(label, fn) {
 const get = (p, h) => fetch(BASE + p, { headers: h });
 const post = (p, body, h = J) => fetch(BASE + p, { method: 'POST', headers: h, body: JSON.stringify(body) });
 
-console.log('\nCustomer journey');
+// The cafe only takes orders during a break, so open one for the run.
+await fetch(BASE + '/api/break', { method: 'POST', headers: AUTH, body: JSON.stringify({ minutes: 10 }) });
+console.log('\nCustomer journey (Opening the cafe first)');
 await check('page loads', async () => (await get('/')).status === 200);
 await check('menu loads with items', async () => {
   const d = await (await get('/api/menu')).json();

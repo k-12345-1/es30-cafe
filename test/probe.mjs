@@ -20,7 +20,10 @@ const json = (obj, headers = {}) => ({
   body: JSON.stringify(obj)
 });
 
-// --- cart and pricing -------------------------------------------------
+// The cafe has to be open for any of the cart checks to mean anything.
+await fetch(BASE + '/api/break', { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ minutes: 10 }) });
+
+// --- cart and pricing (open the cafe first) ---------------------------
 await call('cart: negative qty', '/api/checkout', json({ name: 'x', cart: [{ id: 'celsius', qty: -5 }] }), (s) => s === 400);
 await call('cart: zero qty', '/api/checkout', json({ name: 'x', cart: [{ id: 'celsius', qty: 0 }] }), (s) => s === 400);
 await call('cart: float qty', '/api/checkout', json({ name: 'x', cart: [{ id: 'celsius', qty: 1.9 }] }), (s) => s === 200);

@@ -43,10 +43,64 @@ const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 const BREAK_FILE = path.join(DATA_DIR, 'break.json');
 
-// The class break the cafe runs in, and how long before opening the clock
-// starts counting down to it.
+/* ---------- when the cafe is open ----------
+   ES30 meets on Wednesdays, so the cafe opens by itself at noon Eastern and
+   runs for ten minutes. Orders keep going through for five minutes after the
+   clock runs out, for the person who was already at the counter, and then the
+   till closes. The server runs on the cafe's timezone (TZ in the blueprint),
+   so these are wall-clock times here. */
+
 const BREAK_MINUTES = 10;
 const OPENS_LEAD_MINUTES = 60;
+const GRACE_MINUTES = 5;
+
+const OPEN_WEEKDAY = Number(process.env.OPEN_WEEKDAY ?? 3);   // 0 Sunday … 3 Wednesday
+const [OPEN_HOUR, OPEN_MINUTE] = (process.env.OPEN_TIME || '12:00').split(':').map(Number);
+
+// The scheduled break either side of a moment: the last one to have started,
+// and the next one due.
+function scheduledBreaks(at) {
+  const previous = new Date(at);
+  previous.setHours(OPEN_HOUR, OPEN_MINUTE, 0, 0);
+  while (previous.getDay() !== OPEN_WEEKDAY || previous.getTime() > at) {
+    previous.setDate(previous.getDate() - 1);
+  }
+
+  const next = new Date(previous);
+  do { next.setDate(next.getDate() + 1); }
+  while (next.getDay() !== OPEN_WEEKDAY);
+
+  return {
+    lastStart: previous.getTime(),
+    lastEnd: previous.getTime() + BREAK_MINUTES * 60_000,
+    nextStart: next.getTime()
+  };
+}
+
+/* What the cafe is doing right now, from the schedule and from anything staff
+   have set by hand. A break staff started wins while it is running. */
+
+function cafeState(brk = {}, at = Date.now()) {
+  const { lastStart, lastEnd, nextStart } = scheduledBreaks(at);
+  const manualEnd = brk.endsAt || null;
+
+  const running =
+    manualEnd && manualEnd > at ? manualEnd
+      : at >= lastStart && at < lastEnd ? lastEnd
+        : null;
+
+  // The end that matters for the closing-time grace: whichever happened later.
+  const lastEnded = Math.max(manualEnd || 0, lastEnd);
+  const ordersOpen = Boolean(running) || at < lastEnded + GRACE_MINUTES * 60_000;
+
+  return {
+    breakEndsAt: running || (manualEnd && manualEnd > lastEnd ? manualEnd : lastEnd),
+    running: Boolean(running),
+    ordersOpen,
+    ordersCloseAt: lastEnded + GRACE_MINUTES * 60_000,
+    opensAt: running ? null : nextStart
+  };
+}
 
 const app = express();
 
@@ -386,9 +440,17 @@ app.get('/api/menu', async (_req, res) => {
     // whose own clock is a minute out still shows the same seconds as the rest
     // of the room.
     now: Date.now(),
-    breakEndsAt: brk.endsAt || null,
-    opensAt: brk.opensAt || null,
+    ...(() => {
+      const state = cafeState(brk);
+      return {
+        breakEndsAt: state.breakEndsAt,
+        opensAt: state.opensAt,
+        ordersOpen: state.ordersOpen,
+        ordersCloseAt: state.ordersCloseAt
+      };
+    })(),
     opensLeadMinutes: OPENS_LEAD_MINUTES,
+    graceMinutes: GRACE_MINUTES,
     menu: menu.map((section) => ({
       ...section,
       groups: section.groups.map((group) => ({
@@ -447,6 +509,13 @@ async function dropEarlierHold(who) {
 app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
   try {
     await dropEarlierHold(visitor(req, res)).catch(() => {});
+
+    // Shut for the day: refused here, not only hidden in the page, so a stale
+    // tab or a script cannot order after the counter has packed up.
+    const open = cafeState(await readJson(BREAK_FILE, {}));
+    if (!open.ordersOpen) {
+      return res.status(409).json({ error: 'ES30 Cafe is closed. See you at the next break!' });
+    }
 
     const name = String(req.body?.name || '').trim();
     if (name.length < 1 || name.length > 60) {
@@ -567,63 +636,14 @@ app.post('/api/break', staffOnly, async (req, res) => {
 
   const endsAt = Date.now() + Math.round(minutes * 60_000);
 
-  await exclusive(async () => {
-    const brk = await readJson(BREAK_FILE, {});
-    const next = { endsAt };
-
-    // The opening time is a standing arrangement: once today's has come round,
-    // it rolls on to the same hour tomorrow rather than needing setting again.
-    if (brk.opensAt) {
-      const when = new Date(brk.opensAt);
-      while (when.getTime() <= endsAt) when.setDate(when.getDate() + 1);
-      next.opensAt = when.getTime();
-    }
-
-    await writeJson(BREAK_FILE, next);
-  });
+  await exclusive(() => writeJson(BREAK_FILE, { endsAt }));
 
   announce();
   res.json({ ok: true, endsAt });
 });
 
 app.delete('/api/break', staffOnly, async (_req, res) => {
-  await exclusive(async () => {
-    const brk = await readJson(BREAK_FILE, {});
-    await writeJson(BREAK_FILE, brk.opensAt ? { opensAt: brk.opensAt } : {});
-  });
-  announce();
-  res.json({ ok: true });
-});
-
-/* The time the cafe opens, given as the clock on the wall says it: the server
-   runs on the cafe's timezone, so "12:00" means noon here. If that hour has
-   already gone by, it is taken as tomorrow's. */
-
-app.post('/api/opens', staffOnly, async (req, res) => {
-  const at = String(req.body?.at || '');
-  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(at);
-  if (!match) return res.status(400).json({ error: 'Give the time as 12:00.' });
-
-  const now = new Date();
-  const when = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
-    Number(match[1]), Number(match[2]), 0, 0);
-  if (when.getTime() <= now.getTime()) when.setDate(when.getDate() + 1);
-
-  await exclusive(async () => {
-    const brk = await readJson(BREAK_FILE, {});
-    await writeJson(BREAK_FILE, { ...brk, opensAt: when.getTime() });
-  });
-
-  announce();
-  res.json({ ok: true, opensAt: when.getTime() });
-});
-
-app.delete('/api/opens', staffOnly, async (_req, res) => {
-  await exclusive(async () => {
-    const brk = await readJson(BREAK_FILE, {});
-    delete brk.opensAt;
-    await writeJson(BREAK_FILE, brk);
-  });
+  await exclusive(() => writeJson(BREAK_FILE, {}));
   announce();
   res.json({ ok: true });
 });
@@ -871,10 +891,22 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     needsToken: Boolean(ADMIN_TOKEN),
     currency: CURRENCY,
     now: Date.now(),
-    breakEndsAt: brk.endsAt || null,
-    opensAt: brk.opensAt || null,
-    opensLeadMinutes: OPENS_LEAD_MINUTES,
+    ...(() => {
+      const state = cafeState(brk);
+      return {
+        breakEndsAt: state.breakEndsAt,
+        running: state.running,
+        opensAt: state.opensAt,
+        ordersOpen: state.ordersOpen,
+        ordersCloseAt: state.ordersCloseAt
+      };
+    })(),
     breakMinutes: BREAK_MINUTES,
+    graceMinutes: GRACE_MINUTES,
+    schedule: {
+      weekday: OPEN_WEEKDAY,
+      time: `${String(OPEN_HOUR).padStart(2, '0')}:${String(OPEN_MINUTE).padStart(2, '0')}`
+    },
     sections: menu.map((s) => ({
       section: s.section,
       groups: s.groups.map((g) => ({ title: g.title }))
