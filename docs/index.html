@@ -235,12 +235,21 @@ body {
 
 /* This face has tight counters, so a heavy stroke closes up the 0s and 6s.
    Lighter stroke plus a little tracking keeps the figures legible. */
+/* Prices sit in a column of their own so every dotted run ends at the same
+   point, instead of stopping earlier on rows whose price happens to be wider. */
 .row-price {
+  flex: none;
+  min-width: 54px;
+  text-align: right;
   font-size: 18px;
   font-family: var(--hand);
   -webkit-text-stroke: 0.25px var(--ink);
   letter-spacing: 0.02em;
   white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+  .row-price { min-width: 48px; }
 }
 
 .row-ctl {

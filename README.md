@@ -106,15 +106,22 @@ an item when it is down to the last three.
 
 ### Who can change the counts
 
-With no `ADMIN_TOKEN` set, the counts can only be changed from the machine the
-server is running on, which suits a till behind the counter. Set `ADMIN_TOKEN`
-in `.env` before putting this anywhere other people can reach:
+`ADMIN_TOKEN` in `.env` is the staff code. It is set on this machine already.
+With it set, the stock page asks for the code from anywhere, including the till
+itself. With it blank, the counts can only be changed from the machine the
+server is running on.
 
-```
-ADMIN_TOKEN=some-long-random-string
-```
+The staff page asks for the code and remembers it in that browser.
 
-The staff page then asks for that code and remembers it in the browser.
+`.env` is not in git, so the code is not in the public repo. Keep it that way:
+anything committed here is readable by anyone.
+
+### The stock page needs the server
+
+`/admin.html` talks to `/api/stock`, so it only works where the Node app is
+running. GitHub Pages serves static files and cannot run it, so the Pages URL
+has a storefront but no working stock page. Deploy the app to a host that runs
+Node, with a disk that persists, to have both at one address.
 
 ## Mailing list
 
