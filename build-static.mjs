@@ -35,6 +35,9 @@ let body = html.split('<body>')[1].split('<script src="app.js">')[0].trim();
 const hero = fs.readFileSync('public/hero.png').toString('base64');
 body = body.replace('src="hero.png"', `src="data:image/png;base64,${hero}"`);
 
+// The tab icon travels the same way.
+const favicon = fs.readFileSync('public/favicon.png').toString('base64');
+
 // The static build never takes a payment, so Stripe.js is not carried into it.
 body = body.replace(/\n?\s*<script src="https:\/\/js\.stripe\.com[^>]*><\/script>/g, '');
 body = body.replace('  </div>\n</div>',
@@ -180,6 +183,7 @@ const pagesDoc = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FFEBAF">
 <meta name="description" content="Order snacks and drinks from ES30 Cafe.">
+<link rel="icon" type="image/png" href="data:image/png;base64,${favicon}">
 <!--
   Static build of the storefront, served by GitHub Pages.
   Checkout is simulated, the giveaway entry goes nowhere and stock resets on

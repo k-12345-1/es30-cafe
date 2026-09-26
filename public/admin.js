@@ -89,7 +89,7 @@ function render() {
         <span class="stock-cap">item</span>
         <input class="stock-input-name" type="text" name="name-${item.id}"
                value="${esc(item.name)}" aria-label="Name of this item">
-        <span class="stock-where">${esc(item.section)}${item.group ? ' &middot; ' + esc(item.group) : ''} &middot; ${item.available} on sale</span>
+        <span class="stock-where">${esc(item.section)}${item.group ? ' &middot; ' + esc(item.group) : ''} &middot; ${stockNote(item)}</span>
       </span>
       <span class="stock-money">
         <span class="stock-cap">price</span>
@@ -155,6 +155,16 @@ function render() {
       <span class="list-main">${esc(entry.email)}</span>
       <span class="list-right">${when(entry.addedAt)}</span>
     </li>`).join('');
+}
+
+// What a customer can actually add right now, and why it differs from the
+// count on the shelf when it does.
+function stockNote(item) {
+  const held = item.onHand - item.available;
+  if (held > 0) {
+    return `${item.available} on sale, ${held} held by checkouts in progress`;
+  }
+  return `${item.available} on sale`;
 }
 
 // Today and yesterday by name; anything older by its date.

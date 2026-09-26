@@ -281,7 +281,9 @@ app.post('/api/checkout', async (req, res) => {
         currency: CURRENCY, paid: false, createdAt: Date.now()
       };
       await writeJson(ORDERS_FILE, orders);
-      return embedded ? { clientSecret: session.client_secret } : { url: session.url };
+      return embedded
+        ? { clientSecret: session.client_secret, sessionId: session.id }
+        : { url: session.url };
     });
 
     res.json(result);
@@ -322,6 +324,44 @@ app.patch('/api/orders/:id', staffOnly, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Backing out of the card form. The held stock goes back on the shelf at once
+// rather than sitting out of reach until the session lapses.
+app.post('/api/checkout/abandon', async (req, res) => {
+  const sessionId = String(req.body?.sessionId || '');
+  if (!sessionId || DEMO) return res.json({ ok: true });
+
+  try {
+    const orders = await readJson(ORDERS_FILE, {});
+    const order = orders[sessionId];
+    if (!order || order.paid || order.orderNumber) return res.json({ ok: true });
+
+    // Ask Stripe rather than trust the caller: a payment may have gone through
+    // in the moment between the customer paying and closing the screen.
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === 'paid') {
+      await bookOrder(sessionId);
+      announce();
+      return res.json({ ok: true, paid: true });
+    }
+
+    if (session.status === 'open') await stripe.checkout.sessions.expire(sessionId);
+
+    await exclusive(async () => {
+      const current = await readJson(ORDERS_FILE, {});
+      if (current[sessionId] && !current[sessionId].paid) {
+        delete current[sessionId];
+        await writeJson(ORDERS_FILE, current);
+      }
+    });
+
+    announce();
+    res.json({ ok: true });
+  } catch (err) {
+    console.warn('could not release', sessionId, err.message);
+    res.json({ ok: true });   // the hold lapses on its own soon enough
   }
 });
 
@@ -373,10 +413,19 @@ app.get('/api/order', async (req, res) => {
     return res.status(402).json({ error: 'Payment is not complete yet.' });
   }
 
-  const finished = await exclusive(async () => {
+  const finished = await bookOrder(sessionId);
+  announce();
+  res.json(publicOrder(finished));
+});
+
+// Turning a paid session into an order: a number, and the stock actually spent.
+// Runs under the lock and is safe to call twice on the same session.
+async function bookOrder(sessionId) {
+  return exclusive(async () => {
     const items = itemsOf(await readMenu());
     const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
     const order = orders[sessionId];
+    if (!order) throw new Error('Order not found.');
     if (order.orderNumber) return order;
 
     const { number, day } = nextOrderNumber(orders);
@@ -385,10 +434,44 @@ app.get('/api/order', async (req, res) => {
     await Promise.all([writeJson(ORDERS_FILE, orders), writeJson(STOCK_FILE, stock)]);
     return orders[sessionId];
   });
+}
 
-  announce();
-  res.json(publicOrder(finished));
-});
+/* ---------- catching up with Stripe ----------
+   An order is normally booked when the customer lands back on the order-number
+   screen. If they close the tab at the wrong moment, the money is taken and
+   nothing here knows: the order never appears on the staff list and the stock
+   never comes down. This asks Stripe about anything still unpaid and books
+   whatever was in fact paid for. */
+
+async function reconcile() {
+  if (DEMO) return 0;
+
+  const orders = await readJson(ORDERS_FILE, {});
+  const dayAgo = Date.now() - 24 * 60 * 60_000;
+  const pending = Object.entries(orders)
+    .filter(([id, o]) => !o.orderNumber && !o.paid && id.startsWith('cs_') && (o.createdAt || 0) > dayAgo)
+    .map(([id]) => id);
+
+  let booked = 0;
+  for (const id of pending) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(id);
+      if (session.payment_status === 'paid') {
+        await bookOrder(id);
+        booked += 1;
+      }
+    } catch (err) {
+      console.warn('could not check session', id, err.message);
+    }
+  }
+
+  if (booked) announce();
+  return booked;
+}
+
+// Often enough that a stray payment surfaces while the customer is still at the
+// counter, rarely enough to be no load at all.
+if (!DEMO) setInterval(() => { reconcile().catch(() => {}); }, 90_000);
 
 function publicOrder(o) {
   return {
@@ -426,6 +509,9 @@ function staffOnly(req, res, next) {
 
 // Everything the admin screen shows, in one call.
 app.get('/api/admin', staffOnly, async (_req, res) => {
+  // Cheap, and it means the list is right the moment it is opened.
+  await reconcile().catch(() => {});
+
   const menu = await readMenu();
   const items = itemsOf(menu);
   const [stock, orders, subscribers] = await Promise.all([

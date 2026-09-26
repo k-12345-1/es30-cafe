@@ -406,8 +406,10 @@ async function refreshAvailability() {
    changes is the one at the end. */
 
 let checkoutWidget;
+let paySession;
 
-async function openPayScreen(clientSecret) {
+async function openPayScreen(clientSecret, sessionId) {
+  paySession = sessionId;
   const screen = el('payScreen');
   el('payTotal').textContent = `Total ${el('sheetTotal').textContent}`;
 
@@ -424,6 +426,17 @@ function closePayScreen() {
   if (checkoutWidget) {
     checkoutWidget.destroy();
     checkoutWidget = undefined;
+  }
+
+  // Hand the stock back straight away instead of leaving it held until the
+  // session lapses. The server checks with Stripe before letting it go.
+  if (paySession) {
+    fetch('/api/checkout/abandon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: paySession })
+    }).then(() => syncMenu()).catch(() => {});
+    paySession = undefined;
   }
   el('payScreen').hidden = true;
   el('payBtn').disabled = false;
@@ -472,7 +485,7 @@ el('checkoutForm').addEventListener('submit', async (e) => {
     localStorage.removeItem('es30.cart');
 
     if (data.clientSecret) {
-      await openPayScreen(data.clientSecret);
+      await openPayScreen(data.clientSecret, data.sessionId);
       return;
     }
     window.location.href = data.url;
