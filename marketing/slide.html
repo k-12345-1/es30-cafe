@@ -19,9 +19,7 @@
     -webkit-font-smoothing: antialiased;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 72px 110px;
-    gap: 56px;
+    padding: 72px 110px 0;
   }
 
   /* the sign and the goods on one side, the code on the other */
@@ -53,6 +51,12 @@
   }
 
   /* where to collect, across the width of the slide rather than under one half */
+  .band {
+    flex: 1;
+    display: grid;
+    place-items: center;
+  }
+
   .pickup {
     font-family: var(--banner);
     font-size: 44px; line-height: 1.45;
@@ -71,4 +75,6 @@
     <p class="url">Visit: es30-cafe.onrender.com</p>
   </div>
 </div>
-<p class="tag pickup">Pick up at reception table near entrance of Lowell Lecture Hall.</p>
+<div class="band">
+  <p class="tag pickup">Pick up during the 10-minute break at reception table near entrance of Lowell Lecture Hall.</p>
+</div>
