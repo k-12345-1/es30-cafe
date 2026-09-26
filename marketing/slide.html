@@ -19,7 +19,9 @@
     -webkit-font-smoothing: antialiased;
     display: flex;
     flex-direction: column;
-    padding: 72px 110px 0;
+    justify-content: center;
+    gap: 90px;
+    padding: 0 110px;
   }
 
   /* the sign and the goods on one side, the code on the other */
@@ -51,11 +53,7 @@
   }
 
   /* where to collect, across the width of the slide rather than under one half */
-  .band {
-    flex: 1;
-    display: grid;
-    place-items: center;
-  }
+  .band { display: grid; place-items: center; }
 
   .pickup {
     font-family: var(--banner);
