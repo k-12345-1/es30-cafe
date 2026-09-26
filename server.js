@@ -43,6 +43,16 @@ const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 
 const app = express();
 app.use(express.json());
+
+// The link-preview tags need the site's own address, which is only known at
+// run time, so the page is served with it filled in. Everything else is static.
+const INDEX = path.join(__dirname, 'public', 'index.html');
+const indexPage = (await fs.readFile(INDEX, 'utf8')).replaceAll('%PUBLIC_URL%', PUBLIC_URL);
+
+app.get(['/', '/index.html'], (_req, res) => {
+  res.type('html').send(indexPage);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ---------- one writer at a time ----------

@@ -32,6 +32,9 @@ let body = html.split('<body>')[1].split('<script src="app.js">')[0].trim();
 
 // The artwork rides along as a data URI: one file to publish, and nothing to
 // go missing on a host that only serves the page itself.
+// Where the Pages copy lives, for its link-preview tags.
+const PAGES_URL = 'https://k-12345-1.github.io/es30-cafe';
+
 const hero = fs.readFileSync('public/hero.png').toString('base64');
 body = body.replace('src="hero.png"', `src="data:image/png;base64,${hero}"`);
 
@@ -183,6 +186,16 @@ const pagesDoc = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FFEBAF">
 <meta name="description" content="Order snacks and drinks from ES30 Cafe.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ES30 Cafe">
+<meta property="og:title" content="ES30 Cafe">
+<meta property="og:description" content="Snacks and drinks, ordered from your phone.">
+<meta property="og:url" content="${PAGES_URL}/">
+<meta property="og:image" content="${PAGES_URL}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ES30 Cafe: a cookie and a can of Celsius">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="data:image/png;base64,${favicon}">
 <!--
   Static build of the storefront, served by GitHub Pages.
@@ -198,6 +211,8 @@ ${page.replace(/\n?<script>/, '\n</head>\n<body>\n<script>')}
 
 fs.mkdirSync('docs', { recursive: true });
 fs.writeFileSync('docs/index.html', pagesDoc);
+// A preview card has to be a real file at a real address; a data URI will not do.
+fs.copyFileSync('public/og.png', 'docs/og.png');
 
 const out = process.argv[2];
 if (out) fs.writeFileSync(out, page);
