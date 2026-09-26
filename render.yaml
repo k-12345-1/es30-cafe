@@ -5,8 +5,9 @@
 # filesystem would lose them on every deploy.
 services:
   - type: web
-    name: es30-cafe-admin
+    name: es30-cafe
     runtime: node
+    region: virginia      # closest of Render's regions to Cambridge
     plan: starter
     buildCommand: npm install
     startCommand: npm start
