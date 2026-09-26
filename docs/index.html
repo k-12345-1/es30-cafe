@@ -484,14 +484,13 @@ body {
 
 /* Pull the list into the sheet's padding so its scrollbar sits beside the
    content instead of on top of the quantity buttons. */
-/* The heading sits at the top; the order, the total and the name field ride
-   together in the middle of whatever room is left, so a short order never
-   opens a gap between the last item and the total. */
+/* The order reads top down from the heading: items, total, name, checkout, one
+   after another with no gaps opened between them. Any room left over sits at
+   the foot of the sheet. */
 .sheet > form { margin-bottom: auto; }
 
 .cart-list {
   flex: 0 1 auto;
-  margin-top: auto;
   overflow-y: auto;
   padding-right: 10px;
   margin-right: -10px;
