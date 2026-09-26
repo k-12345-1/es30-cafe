@@ -115,25 +115,26 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Even air above, between and below, rather than the banner and the button
-     pinned to the card's edges with a void in the middle. */
-  justify-content: space-evenly;
+  /* Centred as one block, with the same gap under the banner, under the
+     drawing and above the button. */
+  justify-content: center;
+  gap: clamp(26px, 6svh, 62px);
   text-align: center;
 }
 
 .art { color: var(--ink); display: block; }
 
-/* The opening artwork. It carries the banner and the drawing together, so it
-   is sized to leave the button clear of the fold on a short screen. */
-.art-splash {
+/* The opening screen is three things in a column: the banner, the drawing and
+   the button, with the same air between each of them. */
+.art-banner,
+.art-drink {
   display: block;
-  width: 100%;
-  max-width: 100%;
   height: auto;
-  max-height: 72svh;
-  object-fit: contain;
   margin: 0 auto;
 }
+
+.art-banner { width: min(100%, 340px); }
+.art-drink  { width: min(88%, 300px); }
 
 .ghost-btn {
   background: none;
@@ -735,13 +736,19 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   margin: 20px auto 14px;
 }
 
-/* The artwork's own ratio, with a height cap so a short screen (landscape
-   phone, small laptop) shrinks it instead of pushing the button off. */
-.art-splash {
+/* Their own ratios, and a cap on the drawing so a short screen shrinks it
+   rather than pushing the button off. */
+.art-banner {
   flex: none;
-  aspect-ratio: 1000 / 1062;
+  aspect-ratio: 900 / 256;
   height: auto;
-  max-height: 64svh;
+}
+
+.art-drink {
+  flex: none;
+  aspect-ratio: 760 / 543;
+  height: auto;
+  max-height: 40svh;
 }
 
 .order-number .hash {
@@ -851,6 +858,9 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   .row-qty span { font-size: 16px; min-width: 24px; }
   .row-ctl { min-width: 94px; }
 
+  .art-banner { width: min(100%, 420px); }
+  .art-drink { width: min(86%, 360px); }
+
   .cart-bar { font-size: 17px; }
   .cart-bar-cta { font-size: 16px; padding: 9px 20px; }
 
@@ -942,7 +952,8 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
    sheet, still fit without scrolling. */
 @media (max-height: 620px) {
   .screen { padding-top: 20px; padding-bottom: 22px; }
-  .art-splash { max-height: 52svh; margin: 4px auto; }
+  .art-drink { max-height: 30svh; }
+  .art-banner { width: min(100%, 280px); }
   .ribbon .r4 { font-size: 24px; padding: 7px 30px; }
   .ghost-btn { font-size: 22px; padding-top: 4px; }
   .section-title { margin-top: 26px; font-size: 27px; }
@@ -979,7 +990,9 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 /* Landscape phones. Very little height, so the splash gets the minimum it needs. */
 @media (max-height: 440px) {
   .screen { padding-top: 14px; padding-bottom: 16px; }
-  .art-splash { max-height: 48svh; margin: 2px auto; }
+  .art-drink { max-height: 26svh; }
+  .art-banner { width: min(100%, 230px); }
+  .splash { gap: 18px; }
   .ribbon .r4 { font-size: 20px; padding: 6px 24px; }
   .ghost-btn { font-size: 19px; padding: 4px 6px 2px; }
   .order-number { font-size: 52px; }

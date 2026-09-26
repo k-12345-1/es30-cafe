@@ -35,8 +35,10 @@ let body = html.split('<body>')[1].split('<script src="app.js">')[0].trim();
 // Where the Pages copy lives, for its link-preview tags.
 const PAGES_URL = 'https://k-12345-1.github.io/es30-cafe';
 
-const hero = fs.readFileSync('public/hero.png').toString('base64');
-body = body.replace('src="hero.png"', `src="data:image/png;base64,${hero}"`);
+for (const name of ['banner.png', 'drink.png']) {
+  const data = fs.readFileSync(`public/${name}`).toString('base64');
+  body = body.replace(`src="${name}"`, `src="data:image/png;base64,${data}"`);
+}
 
 // The tab icon travels the same way.
 const favicon = fs.readFileSync('public/favicon.png').toString('base64');
