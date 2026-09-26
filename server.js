@@ -53,6 +53,13 @@ app.get(['/', '/index.html'], (_req, res) => {
   res.type('html').send(indexPage);
 });
 
+// Apple's domain-verification file lives in a dot-folder, which the static
+// middleware hides by default. Wallets on your own domain need it served.
+app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known'), {
+  dotfiles: 'allow',
+  setHeaders: (res) => res.type('text/plain')
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ---------- one writer at a time ----------
