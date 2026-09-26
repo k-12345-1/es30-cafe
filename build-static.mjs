@@ -191,7 +191,7 @@ const pagesDoc = `<!doctype html>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ES30 Cafe">
 <meta property="og:title" content="ES30 Cafe">
-<meta property="og:description" content="Snacks and drinks, ordered from your phone.">
+<meta property="og:description" content="Snacks and drinks for ES30.">
 <meta property="og:url" content="${PAGES_URL}/">
 <meta property="og:image" content="${PAGES_URL}/og.png">
 <meta property="og:image:width" content="1200">
