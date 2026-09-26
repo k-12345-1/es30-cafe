@@ -196,37 +196,12 @@ function when(value) {
 
 let breakTimer;
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 function clockTime(ms) {
   return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 // What the schedule does on its own, and whether the till is open right now.
-// What the schedule does on its own, and what the clock is showing now.
-function showOpens() {
-  const note = el('opensNote');
-  const day = DAYS[data.schedule.weekday];
-  const [h, m] = data.schedule.time.split(':').map(Number);
-  const at = new Date();
-  at.setHours(h, m, 0, 0);
-
-  const plan = `Orders open by themselves every ${day} at ${clockTime(at.getTime())}, an hour before the break. ` +
-    `Press start when the break begins, and stop when you are done serving.`;
-
-  const showing = {
-    opening: () => `Counting down to ${clockTime(data.opensAt)}.`,
-    soon: () => 'Menu says: opening soon. Press start when you are ready.',
-    closing: () => 'Break running.',
-    closed: () => (data.ordersOpen ? 'Break over, still serving.' : 'Closed.')
-  }[data.clock.mode];
-
-  note.textContent = `${plan} ${showing ? showing() : ''} ` +
-    (data.ordersOpen ? 'Taking orders now.' : 'Not taking orders.');
-}
-
 function showBreak() {
-  showOpens();
 
   clearInterval(breakTimer);
   const left = el('breakLeft');
