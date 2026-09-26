@@ -165,7 +165,7 @@ function paintClock(msLeft, mode) {
   if (note) {
     note.textContent = state.ordersOpen
       ? ''
-      : 'The counter is closed. Come back at the next break.';
+      : 'Time to go back to lecture!';
     note.hidden = state.ordersOpen;
   }
 }
