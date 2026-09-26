@@ -407,14 +407,16 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
       return res.status(400).json({ error: 'Please enter the name for the order.' });
     }
 
-    const result = await exclusive(async () => {
+    // Step one, under the lock and nothing else: price the cart against what is
+    // actually left and write the hold. Whoever gets here first gets the stock.
+    const held = await exclusive(async () => {
       const menu = await readMenu();
       const items = itemsOf(menu);
       const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
       const { lines, total } = priceCart(req.body?.cart, items, availability(items, stock, orders));
 
       if (DEMO) {
-        const key = `demo_${Date.now().toString(36)}`;
+        const key = `demo_${randomUUID()}`;
         const { number, day } = nextOrderNumber(orders);
         orders[key] = {
           orderNumber: number, day, name, lines, total,
@@ -422,19 +424,38 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
         };
         commitStock(stock, lines);
         await Promise.all([writeJson(ORDERS_FILE, orders), writeJson(STOCK_FILE, stock)]);
-        announce();
-        return { demo: true, url: `${PUBLIC_URL}/success.html?session_id=${key}` };
+        return { demo: true, key };
       }
 
-      const embedded = Boolean(PUBLISHABLE);
+      const key = `hold_${randomUUID()}`;
+      orders[key] = {
+        orderNumber: null, day: null, name, lines, total,
+        currency: CURRENCY, paid: false, createdAt: Date.now(), from: visitor(req, res)
+      };
+      await writeJson(ORDERS_FILE, orders);
+      return { key, lines, total };
+    });
 
-      const session = await stripe.checkout.sessions.create({
+    announce();
+
+    if (held.demo) {
+      return res.json({ demo: true, url: `${PUBLIC_URL}/success.html?session_id=${held.key}` });
+    }
+
+    // Step two, outside the lock: Stripe. A round trip to another company has no
+    // business holding up the next customer's cart, which is what happened when
+    // this sat inside the queue.
+    const embedded = Boolean(PUBLISHABLE);
+    let session;
+
+    try {
+      session = await stripe.checkout.sessions.create({
         mode: 'payment',
         // Cards only. Wallets like Apple Pay and Google Pay still appear, but
         // pay-later methods such as Klarna do not: the cafe hands the snack
         // over at the counter and wants the money then, not in instalments.
         payment_method_types: ['card'],
-        line_items: lines.map((l) => ({
+        line_items: held.lines.map((l) => ({
           quantity: l.qty,
           price_data: { currency: CURRENCY, unit_amount: l.unit, product_data: { name: l.name } }
         })),
@@ -452,26 +473,37 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
               cancel_url: `${PUBLIC_URL}/`
             })
       });
+    } catch (err) {
+      // Stripe said no, so the hold goes back rather than sitting on stock for
+      // half an hour for an order that can never be paid.
+      await exclusive(async () => {
+        const orders = await readJson(ORDERS_FILE, {});
+        delete orders[held.key];
+        await writeJson(ORDERS_FILE, orders);
+      });
+      announce();
+      throw err;
+    }
 
-      orders[session.id] = {
-        orderNumber: null, day: null, name, lines, total,
-        currency: CURRENCY, paid: false, createdAt: Date.now(), from: visitor(req, res)
-      };
+    // Step three: file the hold under the session it belongs to.
+    await exclusive(async () => {
+      const orders = await readJson(ORDERS_FILE, {});
+      const order = orders[held.key];
+      if (!order) return;                     // abandoned while Stripe was thinking
+      delete orders[held.key];
+      orders[session.id] = order;
       await writeJson(ORDERS_FILE, orders);
-      return embedded
-        ? { clientSecret: session.client_secret, sessionId: session.id }
-        : { url: session.url };
     });
 
-    res.json(result);
+    res.json(embedded
+      ? { clientSecret: session.client_secret, sessionId: session.id }
+      : { url: session.url });
   } catch (err) {
     console.error('checkout failed:', err);
     res.status(400).json({ error: err.message || 'Could not start checkout.' });
   }
 });
 
-// The giveaway signup on the confirmation screen. Always answers ok, so a
-// customer who has already paid never sees an error over an optional extra.
 app.post('/api/subscribe', limit('subscribe', 8), async (req, res) => {
   await rememberEmail(req.body?.email);
   res.json({ ok: true });
