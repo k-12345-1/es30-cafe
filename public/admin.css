@@ -51,6 +51,22 @@
 
 /* ---------- sign in ---------- */
 
+/* Signed out there is nothing else to look at, so the code box takes the
+   middle of the page rather than hanging under the heading. */
+.admin-body.signed-out .admin {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-body.signed-out .signin {
+  margin: auto;
+  text-align: center;
+}
+
+.admin-body.signed-out .signin label { display: block; }
+
 .signin { max-width: 360px; }
 
 .signin label {
@@ -75,6 +91,7 @@
 
 .signin input:focus { outline: none; border-color: var(--ink); }
 .signin .pay { width: auto; padding: 13px 34px; }
+.admin-body.signed-out .signin .pay { margin-top: 6px; }
 
 /* ---------- takings ---------- */
 

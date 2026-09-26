@@ -30,10 +30,13 @@ async function load() {
   if (res.status === 401) {
     el('signin').hidden = false;
     el('dash').hidden = true;
+    // With nothing else on the page, the code box sits in the middle of it.
+    document.body.classList.add('signed-out');
     return false;
   }
 
   data = await res.json();
+  document.body.classList.remove('signed-out');
   el('signin').hidden = true;
   el('dash').hidden = false;
   render();
