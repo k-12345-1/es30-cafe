@@ -95,9 +95,8 @@ window.addEventListener('resize', () => {
    phone with a wandering clock in step with the room. */
 
 let clockOffset = 0;        // server time minus this device's time
-let breakEndsAt = null;
-let opensAt = null;
-let openingLeadMs = 60 * 60_000;
+let clockMode = 'closed';   // opening, soon, closing, closed: the server decides
+let clockTarget = null;     // the moment being counted to, when there is one
 let clockTimer;
 
 let clockDrawn = false;
@@ -148,12 +147,11 @@ function paintClock(msLeft, mode) {
   clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
   clockDrawn = true;
 
-  clock.classList.toggle('resting', mode === 'waiting' || mode === 'soon');
+  clock.classList.toggle('resting', mode === 'opening' || mode === 'soon');
   clock.classList.toggle('last-minute', mode === 'closing' && left > 0 && left <= 60_000);
   clock.classList.toggle('over', mode === 'closed');
 
   const labels = {
-    waiting: '10-Minute Break Countdown',
     opening: 'ES30 Cafe opens in',
     soon: 'ES30 Cafe opening soon',
     closing: 'ES30 Cafe closes in',
@@ -161,56 +159,41 @@ function paintClock(msLeft, mode) {
   };
   clock.querySelector('.flip-label').textContent = labels[mode];
 
+  // A line under the clock, saying what the cards cannot.
   const note = el('clockNote');
   if (note) {
-    note.textContent = state.ordersOpen
-      ? ''
-      : 'Time to go back to lecture!';
-    note.hidden = state.ordersOpen;
+    const lines = {
+      opening: 'The counter opens when the countdown ends.',
+      soon: 'Opening any moment now.',
+      closed: 'Time to go back to lecture!'
+    };
+    const line = state.ordersOpen ? '' : (lines[mode] || '');
+    note.textContent = line;
+    note.hidden = !line;
+    note.classList.toggle('waiting', mode === 'opening' || mode === 'soon');
   }
 }
 
-const BREAK_LENGTH_MS = 10 * 60_000;
-
-/* The one clock, through the day:
-     opens in     counting down the hour before the cafe opens
-     opening soon that moment has come and staff have not started the break
-     closes in    the break is running
-     closed       it has run out
-     waiting      nothing is set, so it rests at the length of a break */
-
 function runClock() {
   clearInterval(clockTimer);
-  const clock = el('breakClock');
-  clock.hidden = false;
+  el('breakClock').hidden = false;
+
+  // Nothing to count: the sign just sits there.
+  if (!clockTarget) {
+    paintClock(0, clockMode);
+    return;
+  }
 
   const tick = () => {
-    const now = Date.now() + clockOffset;
-
-    // Running: counting down to closing time.
-    if (breakEndsAt && breakEndsAt > now) {
-      paintClock(breakEndsAt - now, 'closing');
+    const left = clockTarget - (Date.now() + clockOffset);
+    if (left <= 0) {
+      // The hour is up, or the break is over. The server says what comes next.
+      clearInterval(clockTimer);
+      paintClock(0, clockMode === 'opening' ? 'soon' : 'closed');
+      syncMenu();
       return;
     }
-
-    // Not running: either the next break is close enough to count down to, or
-    // the cafe is simply shut.
-    if (opensAt) {
-      const until = opensAt - now;
-      if (until <= 0) {
-        paintClock(0, 'soon');
-        return;
-      }
-      if (until <= openingLeadMs) {
-        paintClock(until, 'opening');
-        return;
-      }
-    }
-
-    paintClock(0, 'closed');
-    clearInterval(clockTimer);
-    // Keep a slow pulse so the hour before the next break still arrives.
-    clockTimer = setInterval(tick, 5000);
+    paintClock(left, clockMode);
   };
 
   tick();
@@ -269,11 +252,12 @@ async function syncMenu() {
   document.body.classList.toggle('shut', !state.ordersOpen);
 
   if (Number.isFinite(data.now)) clockOffset = data.now - Date.now();
-  if (Number.isFinite(data.opensLeadMinutes)) openingLeadMs = data.opensLeadMinutes * 60_000;
 
-  if (data.breakEndsAt !== breakEndsAt || data.opensAt !== opensAt || !clockTimer) {
-    breakEndsAt = data.breakEndsAt || null;
-    opensAt = data.opensAt || null;
+  const mode = data.clock?.mode || 'closed';
+  const target = data.clock?.target || null;
+  if (mode !== clockMode || target !== clockTarget) {
+    clockMode = mode;
+    clockTarget = target;
     runClock();
   }
   state.items = Object.fromEntries(

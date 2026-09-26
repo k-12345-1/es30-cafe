@@ -203,6 +203,7 @@ function clockTime(ms) {
 }
 
 // What the schedule does on its own, and whether the till is open right now.
+// What the schedule does on its own, and what the clock is showing now.
 function showOpens() {
   const note = el('opensNote');
   const day = DAYS[data.schedule.weekday];
@@ -210,12 +211,18 @@ function showOpens() {
   const at = new Date();
   at.setHours(h, m, 0, 0);
 
-  const opens = `Opens by itself every ${day} at ${clockTime(at.getTime())} for ${data.breakMinutes} minutes, ` +
-    `and takes orders for ${data.graceMinutes} minutes after that.`;
+  const plan = `The hour before opening starts by itself every ${day} at ${clockTime(at.getTime())}. ` +
+    `When it runs out the menu says opening soon and waits for you to start the break.`;
 
-  note.textContent = data.ordersOpen
-    ? `${opens} Taking orders now, until ${clockTime(data.ordersCloseAt)}.`
-    : `${opens} Not taking orders: next break ${data.opensAt ? clockTime(data.opensAt) : 'soon'}.`;
+  const showing = {
+    opening: () => `Counting down to ${clockTime(data.opensAt)}.`,
+    soon: () => 'Menu says: opening soon. Press start when you are ready.',
+    closing: () => 'Break running.',
+    closed: () => 'Menu says: closed.'
+  }[data.clock.mode];
+
+  note.textContent = `${plan} ${showing ? showing() : ''} ` +
+    (data.ordersOpen ? `Taking orders until ${clockTime(data.ordersCloseAt)}.` : 'Not taking orders.');
 }
 
 function showBreak() {

@@ -1013,10 +1013,10 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 
 #breakClock[hidden] { display: none; }
 
-/* Waiting for a break to start: the same cards, quietly. Only the resting
-   halves are dimmed; the leaves must stay invisible until one actually turns,
-   or the digit they last carried ghosts through. */
-.flipclock.resting .flip .face { opacity: 0.55; }
+/* Before the cafe opens: the same cards, quietly. Dimming the card rather than
+   its halves keeps a turning leaf the same shade as the face behind it, and
+   leaves an untouched leaf at zero opacity so it cannot ghost through. */
+.flipclock.resting .flip { opacity: 0.6; }
 .flipclock.resting .flip-label { opacity: 0.45; }
 
 .flip-label {
@@ -1161,6 +1161,13 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
   line-height: 1.4;
   color: var(--alert);
   -webkit-text-stroke: 0.25px var(--alert);
+}
+
+/* Before opening there is nothing wrong, so the line is quiet rather than red. */
+.clock-note.waiting {
+  color: var(--ink);
+  -webkit-text-stroke: 0;
+  opacity: 0.6;
 }
 
 #clockNote[hidden] { display: none; }

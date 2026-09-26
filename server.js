@@ -59,46 +59,74 @@ const [OPEN_HOUR, OPEN_MINUTE] = (process.env.OPEN_TIME || '12:00').split(':').m
 
 // The scheduled break either side of a moment: the last one to have started,
 // and the next one due.
-function scheduledBreaks(at) {
-  const previous = new Date(at);
-  previous.setHours(OPEN_HOUR, OPEN_MINUTE, 0, 0);
-  while (previous.getDay() !== OPEN_WEEKDAY || previous.getTime() > at) {
-    previous.setDate(previous.getDate() - 1);
+/* The weekly cycle: at the scheduled hour the countdown to opening begins and
+   runs for OPENS_LEAD_MINUTES. When it reaches zero the cafe is about to open
+   and the menu says so; the break itself starts when staff press the button,
+   not before. */
+
+function cycle(at) {
+  const countdownFrom = new Date(at);
+  countdownFrom.setHours(OPEN_HOUR, OPEN_MINUTE, 0, 0);
+  while (countdownFrom.getDay() !== OPEN_WEEKDAY || countdownFrom.getTime() > at) {
+    countdownFrom.setDate(countdownFrom.getDate() - 1);
   }
 
-  const next = new Date(previous);
-  do { next.setDate(next.getDate() + 1); }
-  while (next.getDay() !== OPEN_WEEKDAY);
+  const nextCountdown = new Date(countdownFrom);
+  do { nextCountdown.setDate(nextCountdown.getDate() + 1); }
+  while (nextCountdown.getDay() !== OPEN_WEEKDAY);
 
   return {
-    lastStart: previous.getTime(),
-    lastEnd: previous.getTime() + BREAK_MINUTES * 60_000,
-    nextStart: next.getTime()
+    countdownFrom: countdownFrom.getTime(),
+    opensAt: countdownFrom.getTime() + OPENS_LEAD_MINUTES * 60_000,
+    nextCountdown: nextCountdown.getTime()
   };
 }
 
-/* What the cafe is doing right now, from the schedule and from anything staff
-   have set by hand. A break staff started wins while it is running. */
+/* What the clock says and whether the till is open.
+
+     opening   the hour before the cafe opens, counting down
+     soon      that hour is up; waiting on staff to start the break
+     closing   the break is running
+     closed    everything else
+
+   Orders are taken only while a break runs, and for a few minutes after it,
+   for whoever is already at the counter. */
+
+const SOON_HOLD_MINUTES = 120;
 
 function cafeState(brk = {}, at = Date.now()) {
-  const { lastStart, lastEnd, nextStart } = scheduledBreaks(at);
-  const manualEnd = brk.endsAt || null;
+  const { countdownFrom, opensAt, nextCountdown } = cycle(at);
+  const endsAt = brk.endsAt || null;
+  const ordersCloseAt = endsAt ? endsAt + GRACE_MINUTES * 60_000 : null;
 
-  const running =
-    manualEnd && manualEnd > at ? manualEnd
-      : at >= lastStart && at < lastEnd ? lastEnd
-        : null;
+  // A break this cycle, running or finished.
+  const breakThisCycle = Boolean(endsAt && endsAt >= countdownFrom);
+  const running = Boolean(endsAt && endsAt > at);
 
-  // The end that matters for the closing-time grace: whichever happened later.
-  const lastEnded = Math.max(manualEnd || 0, lastEnd);
-  const ordersOpen = Boolean(running) || at < lastEnded + GRACE_MINUTES * 60_000;
+  let mode = 'closed';
+  let target = null;
+
+  if (running) {
+    mode = 'closing';
+    target = endsAt;
+  } else if (breakThisCycle) {
+    mode = 'closed';                       // today's break has been and gone
+  } else if (at < opensAt) {
+    mode = 'opening';
+    target = opensAt;
+  } else if (at < opensAt + SOON_HOLD_MINUTES * 60_000) {
+    mode = 'soon';
+  }
 
   return {
-    breakEndsAt: running || (manualEnd && manualEnd > lastEnd ? manualEnd : lastEnd),
-    running: Boolean(running),
-    ordersOpen,
-    ordersCloseAt: lastEnded + GRACE_MINUTES * 60_000,
-    opensAt: running ? null : nextStart
+    mode,
+    target,
+    running,
+    ordersOpen: running || Boolean(ordersCloseAt && at < ordersCloseAt),
+    ordersCloseAt,
+    countdownFrom,
+    opensAt,
+    nextCountdown
   };
 }
 
@@ -443,8 +471,7 @@ app.get('/api/menu', async (_req, res) => {
     ...(() => {
       const state = cafeState(brk);
       return {
-        breakEndsAt: state.breakEndsAt,
-        opensAt: state.opensAt,
+        clock: { mode: state.mode, target: state.target },
         ordersOpen: state.ordersOpen,
         ordersCloseAt: state.ordersCloseAt
       };
@@ -894,9 +921,12 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     ...(() => {
       const state = cafeState(brk);
       return {
-        breakEndsAt: state.breakEndsAt,
+        clock: { mode: state.mode, target: state.target },
         running: state.running,
+        breakEndsAt: brk.endsAt || null,
         opensAt: state.opensAt,
+        countdownFrom: state.countdownFrom,
+        nextCountdown: state.nextCountdown,
         ordersOpen: state.ordersOpen,
         ordersCloseAt: state.ordersCloseAt
       };

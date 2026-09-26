@@ -15,15 +15,15 @@ the button on the right, checkout with a name through Stripe, then an order numb
 
 ## Opening hours
 
-The cafe opens by itself at **noon Eastern every Wednesday** and runs for ten
-minutes, the length of the ES30 break. Orders keep going through for five
-minutes after the clock runs out, for whoever is already at the counter, and
-then the till closes: the server refuses checkouts, so a stale tab cannot order
-after the counter has packed up.
+At **noon Eastern every Wednesday** the clock at the top of the menu starts
+counting down the hour before the cafe opens. When it reaches zero the menu
+says **opening soon** and waits: the ten-minute break itself starts when staff
+press the button, not before.
 
-The clock at the top of the menu follows that: it counts down the hour before
-opening, counts the break down while it runs, and shows the closed sign after.
-Staff can start a break by hand from the dashboard for anything off schedule.
+Once it is running the clock counts the break down, and orders keep going
+through for five minutes after it ends, for whoever is already at the counter.
+Then the till closes: the server refuses checkouts, so a stale tab cannot order
+after the counter has packed up.
 
 Change the schedule with environment variables:
 
