@@ -242,6 +242,10 @@ app.post('/api/checkout', async (req, res) => {
 
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
+        // Cards only. Wallets like Apple Pay and Google Pay still appear, but
+        // pay-later methods such as Klarna do not: the cafe hands the snack
+        // over at the counter and wants the money then, not in instalments.
+        payment_method_types: ['card'],
         line_items: lines.map((l) => ({
           quantity: l.qty,
           price_data: { currency: CURRENCY, unit_amount: l.unit, product_data: { name: l.name } }
@@ -282,6 +286,9 @@ app.post('/api/subscribe', async (req, res) => {
   await rememberEmail(req.body?.email);
   res.json({ ok: true });
 });
+
+// A tidier way in for staff than typing the file name.
+app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
 /* ---------- confirmation ---------- */
 
