@@ -20,10 +20,12 @@ counting down the hour before the cafe opens. When it reaches zero the menu
 says **opening soon** and waits: the ten-minute break itself starts when staff
 press the button, not before.
 
-Once it is running the clock counts the break down, and orders keep going
-through for five minutes after it ends, for whoever is already at the counter.
-Then the till closes: the server refuses checkouts, so a stale tab cannot order
-after the counter has packed up.
+Orders are taken from the moment that hour begins, so people can get one in
+before the rush, and keep being taken through the break and past the end of it
+until staff press **stop**. That is what closes the till: the server refuses
+checkouts from then on, so a stale tab cannot order after the counter has
+packed up. If nobody presses it, the till closes itself an hour after the
+break rather than selling all afternoon.
 
 Change the schedule with environment variables:
 

@@ -52,7 +52,9 @@ const BREAK_FILE = path.join(DATA_DIR, 'break.json');
 
 const BREAK_MINUTES = 10;
 const OPENS_LEAD_MINUTES = 60;
-const GRACE_MINUTES = 5;
+// If the till is never closed by hand, it closes itself this long after the
+// break ends rather than selling all afternoon.
+const SERVING_LIMIT_MINUTES = 60;
 
 const OPEN_WEEKDAY = Number(process.env.OPEN_WEEKDAY ?? 3);   // 0 Sunday … 3 Wednesday
 const [OPEN_HOUR, OPEN_MINUTE] = (process.env.OPEN_TIME || '12:00').split(':').map(Number);
@@ -89,8 +91,8 @@ function cycle(at) {
      closing   the break is running
      closed    everything else
 
-   Orders are taken from the moment the hour begins until a few minutes after
-   the break ends, so people can get their order in before the rush. */
+   Orders are taken from the moment the hour begins, through the break, and on
+   past the end of it until staff press stop. */
 
 const SOON_HOLD_MINUTES = 120;
 // How long the closed sign stays up after a break, before the clock leaves the
@@ -100,32 +102,43 @@ const CLOSED_SIGN_MINUTES = 120;
 function cafeState(brk = {}, at = Date.now()) {
   const { countdownFrom, opensAt, nextCountdown } = cycle(at);
   const endsAt = brk.endsAt || null;
-  const ordersCloseAt = endsAt ? endsAt + GRACE_MINUTES * 60_000 : null;
+  const closedAt = brk.closedAt || null;
 
-  // A break this cycle, running or finished.
+  // Anything staff did belongs to this cycle only; last week's does not count.
+  const stopped = Boolean(closedAt && closedAt >= countdownFrom);
   const breakThisCycle = Boolean(endsAt && endsAt >= countdownFrom);
-  const running = Boolean(endsAt && endsAt > at);
+  const running = !stopped && Boolean(endsAt && endsAt > at);
 
   let mode = 'closed';
   let target = null;
+  let ordersOpen = false;
 
-  if (running) {
+  if (stopped) {
+    mode = 'closed';                       // staff shut the till
+  } else if (running) {
     mode = 'closing';
     target = endsAt;
+    ordersOpen = true;
   } else if (breakThisCycle) {
-    mode = 'closed';                       // today's break has been and gone
+    // The ten minutes are up. The sign says closed, but the queue is still
+    // being served until staff press stop, or until the guard below.
+    mode = 'closed';
+    ordersOpen = at < endsAt + SERVING_LIMIT_MINUTES * 60_000;
   } else if (at < opensAt) {
     mode = 'opening';
     target = opensAt;
+    ordersOpen = true;
   } else if (at < opensAt + SOON_HOLD_MINUTES * 60_000) {
     mode = 'soon';
+    ordersOpen = true;
   }
 
-  // On any other day there is nothing to count, so the clock is not on the
-  // menu at all: it appears with the hour before opening and leaves a couple of
-  // hours after the break.
+  // On any other day there is nothing to count, so the clock is not on the menu
+  // at all: it arrives with the hour before opening and leaves once the cycle
+  // is well and truly over.
+  const lastMark = Math.max(closedAt || 0, endsAt || 0);
   const show =
-    mode !== 'closed' || Boolean(endsAt && at < endsAt + CLOSED_SIGN_MINUTES * 60_000);
+    mode !== 'closed' || Boolean(lastMark && at < lastMark + CLOSED_SIGN_MINUTES * 60_000);
 
   // The next time the doors are due, and the next time the till opens, which
   // is when the hour begins rather than when the break does.
@@ -141,12 +154,8 @@ function cafeState(brk = {}, at = Date.now()) {
     nextOpensAt,
     nextOrdersAt,
     running,
-    // Open from the moment the hour starts: through the countdown, through the
-    // wait for staff, through the break, and for a few minutes after it.
-    ordersOpen:
-      mode === 'opening' || mode === 'soon' || mode === 'closing' ||
-      Boolean(ordersCloseAt && at < ordersCloseAt),
-    ordersCloseAt,
+    ordersOpen,
+    stopped,
     countdownFrom,
     opensAt,
     nextCountdown
@@ -497,12 +506,10 @@ app.get('/api/menu', async (_req, res) => {
         clock: { mode: state.mode, target: state.target, show: state.show },
         nextOpensAt: state.nextOpensAt,
         nextOrdersAt: state.nextOrdersAt,
-        ordersOpen: state.ordersOpen,
-        ordersCloseAt: state.ordersCloseAt
+        ordersOpen: state.ordersOpen
       };
     })(),
     opensLeadMinutes: OPENS_LEAD_MINUTES,
-    graceMinutes: GRACE_MINUTES,
     menu: menu.map((section) => ({
       ...section,
       groups: section.groups.map((group) => ({
@@ -688,14 +695,19 @@ app.post('/api/break', staffOnly, async (req, res) => {
 
   const endsAt = Date.now() + Math.round(minutes * 60_000);
 
-  await exclusive(() => writeJson(BREAK_FILE, { endsAt }));
+  await exclusive(() => writeJson(BREAK_FILE, { endsAt }));   // clears any earlier stop
 
   announce();
   res.json({ ok: true, endsAt });
 });
 
+// Stop: the till closes. The clock holds its closed sign, and nothing else
+// can be ordered until the next cycle comes round.
 app.delete('/api/break', staffOnly, async (_req, res) => {
-  await exclusive(() => writeJson(BREAK_FILE, {}));
+  await exclusive(async () => {
+    const brk = await readJson(BREAK_FILE, {});
+    await writeJson(BREAK_FILE, { ...brk, closedAt: Date.now() });
+  });
   announce();
   res.json({ ok: true });
 });
@@ -952,12 +964,12 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
         opensAt: state.opensAt,
         countdownFrom: state.countdownFrom,
         nextCountdown: state.nextCountdown,
+        nextOrdersAt: state.nextOrdersAt,
         ordersOpen: state.ordersOpen,
-        ordersCloseAt: state.ordersCloseAt
+        stopped: state.stopped
       };
     })(),
     breakMinutes: BREAK_MINUTES,
-    graceMinutes: GRACE_MINUTES,
     schedule: {
       weekday: OPEN_WEEKDAY,
       time: `${String(OPEN_HOUR).padStart(2, '0')}:${String(OPEN_MINUTE).padStart(2, '0')}`

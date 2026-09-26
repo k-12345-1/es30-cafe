@@ -211,18 +211,18 @@ function showOpens() {
   const at = new Date();
   at.setHours(h, m, 0, 0);
 
-  const plan = `The hour before opening starts by itself every ${day} at ${clockTime(at.getTime())}. ` +
-    `When it runs out the menu says opening soon and waits for you to start the break.`;
+  const plan = `Orders open by themselves every ${day} at ${clockTime(at.getTime())}, an hour before the break. ` +
+    `Press start when the break begins, and stop when you are done serving.`;
 
   const showing = {
     opening: () => `Counting down to ${clockTime(data.opensAt)}.`,
     soon: () => 'Menu says: opening soon. Press start when you are ready.',
     closing: () => 'Break running.',
-    closed: () => 'Menu says: closed.'
+    closed: () => (data.ordersOpen ? 'Break over, still serving.' : 'Closed.')
   }[data.clock.mode];
 
   note.textContent = `${plan} ${showing ? showing() : ''} ` +
-    (data.ordersOpen ? `Taking orders until ${clockTime(data.ordersCloseAt)}.` : 'Not taking orders.');
+    (data.ordersOpen ? 'Taking orders now.' : 'Not taking orders.');
 }
 
 function showBreak() {
@@ -235,8 +235,9 @@ function showBreak() {
   const endsAt = data.breakEndsAt;
 
   if (!endsAt) {
-    left.textContent = 'not running';
-    stop.hidden = true;
+    left.textContent = data.ordersOpen ? 'taking orders' : 'not running';
+    stop.textContent = 'Stop taking orders';
+    stop.hidden = !data.ordersOpen;         // the till can be shut before the break
     start.textContent = `Start ${data.breakMinutes} minutes`;
     return;
   }
@@ -248,16 +249,15 @@ function showBreak() {
     left.textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} left`;
     if (ms === 0) {
       clearInterval(breakTimer);
-      // The customers' menu is showing the closed sign until this is cleared.
-      left.textContent = 'ended: the menu says closed';
-      stop.textContent = 'Clear';
-      stop.hidden = false;
+      left.textContent = data.ordersOpen ? 'ended: still serving' : 'closed';
+      stop.textContent = 'Stop taking orders';
+      stop.hidden = !data.ordersOpen;
       start.textContent = `Start ${data.breakMinutes} minutes`;
     }
   };
 
   stop.hidden = false;
-  stop.textContent = 'Stop';
+  stop.textContent = 'Stop taking orders';
   start.textContent = 'Restart';
   paint();
   breakTimer = setInterval(paint, 1000);

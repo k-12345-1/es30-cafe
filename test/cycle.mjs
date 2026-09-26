@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 const src = (name) => execFileSync('sed', ['-n', `/^function ${name}/,/^}/p`, 'server.js']).toString();
 
 const probe = `
-  const BREAK_MINUTES = 10, GRACE_MINUTES = 5, OPENS_LEAD_MINUTES = 60;
+  const BREAK_MINUTES = 10, OPENS_LEAD_MINUTES = 60, SERVING_LIMIT_MINUTES = 60;
   const SOON_HOLD_MINUTES = 120, CLOSED_SIGN_MINUTES = 120;
   const OPEN_WEEKDAY = 3, OPEN_HOUR = 12, OPEN_MINUTE = 0;
   ${src('cycle')}
@@ -42,7 +42,10 @@ console.log('\nStaff press start at 13:02\n');
 show('Wed 13:03 (break running)', run('2026-09-30T13:03:00', started));
 show('Wed 13:11 (last minute)', run('2026-09-30T13:11:00', started));
 show('Wed 13:12 (clock runs out)', run('2026-09-30T13:12:00', started));
-show('Wed 13:16 (grace)', run('2026-09-30T13:16:30', started));
-show('Wed 13:17 (till shuts)', run('2026-09-30T13:17:30', started));
+show('Wed 13:20 (still serving)', run('2026-09-30T13:20:00', started));
+
+const stoppedToo = { ...started, closedAt: new Date('2026-09-30T13:21:00').getTime() };
+show('Wed 13:22 (after staff press stop)', run('2026-09-30T13:22:00', stoppedToo));
+show('Wed 14:30 (later that afternoon)', run('2026-09-30T14:30:00', stoppedToo));
 show('Thu 12:30 (next day)', run('2026-10-01T12:30:00', started));
 show('Next Wed 12:30 (hour again)', run('2026-10-07T12:30:00', started));
