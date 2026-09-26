@@ -46,14 +46,19 @@
   .qr-card img { width: 520px; height: 520px; }
   .url { font-size: 38px; -webkit-text-stroke: 0.4px var(--ink); }
 
+  /* the ask and the call to action, in the handwriting the address is set in */
   .tag {
-    font-family: var(--banner);
-    font-size: 40px; text-align: center; line-height: 1.45;
-    letter-spacing: 0.02em;
+    font-size: 36px; text-align: center; line-height: 1.5;
+    -webkit-text-stroke: 0.4px var(--ink);
   }
 
   /* where to collect, across the width of the slide rather than under one half */
-  .pickup { font-size: 44px; }
+  .pickup {
+    font-family: var(--banner);
+    font-size: 44px; line-height: 1.45;
+    letter-spacing: 0.02em;
+    -webkit-text-stroke: 0;
+  }
 </style>
 <div class="top">
   <div class="left">
