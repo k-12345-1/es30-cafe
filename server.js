@@ -154,10 +154,16 @@ function cafeState(brk = {}, at = Date.now()) {
   const lastMark = Math.max(closedAt || 0, endsAt || 0);
   const cycleEnd = opensAt + SOON_HOLD_MINUTES * 60_000;
   const signUntil = Math.min(lastMark + CLOSED_SIGN_MINUTES * 60_000, cycleEnd);
+
+  // The closed sign belongs to the cafe's own day. On any other day, including
+  // one where staff started the hour by hand to try it out, the clock leaves
+  // the menu the moment there is nothing left to count, and the line underneath
+  // says when orders open again.
+  const cafeDay = new Date(at).getDay() === OPEN_WEEKDAY;
   const show =
     mode !== 'closed' ||
     ordersOpen ||                                   // still serving the queue
-    Boolean(lastMark && at < signUntil);
+    Boolean(cafeDay && lastMark && at < signUntil);
 
   // The next time the doors are due, and the next time the till opens, which
   // is when the hour begins rather than when the break does.

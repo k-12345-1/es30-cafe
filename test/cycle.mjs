@@ -61,4 +61,13 @@ show('Wed 13:22 (after staff press stop)', run('2026-09-30T13:22:00', stoppedToo
 show('Wed 13:59 (sign still up)', run('2026-09-30T13:59:00', stoppedToo));
 show('Wed 14:30 (later that afternoon)', run('2026-09-30T14:30:00', stoppedToo));
 show('Thu 12:30 (next day)', run('2026-10-01T12:30:00', started));
+
+console.log('\nStaff try the hour by hand on a Saturday, at 13:00\n');
+const byHand = { countdownAt: new Date('2026-10-03T13:00:00').getTime() };
+show('Sat 13:30 (hour running)', run('2026-10-03T13:30:00', byHand));
+show('Sat 14:15 (hour up)', run('2026-10-03T14:15:00', byHand));
+const handStopped = { ...byHand, closedAt: new Date('2026-10-03T14:20:00').getTime() };
+show('Sat 14:21 (after stop)', run('2026-10-03T14:21:00', handStopped));
+show('Sun 10:00 (next morning)', run('2026-10-04T10:00:00', handStopped));
+
 show('Next Wed 12:30 (hour again)', run('2026-10-07T12:30:00', started));
