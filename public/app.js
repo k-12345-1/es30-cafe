@@ -91,18 +91,18 @@ window.addEventListener('resize', () => {
 
 /* ---------- menu ---------- */
 
-async function loadMenu() {
-  const res = await fetch('/api/menu');
-  const data = await res.json();
+// What the menu looks like, boiled down. If this is unchanged, the rows on
+// screen are still right and only the counts need refreshing.
+function menuShape(menu) {
+  return JSON.stringify(menu.map((s) => [
+    s.section,
+    s.groups.map((g) => [g.title, g.items.map((i) => [i.id, i.name, i.price, i.desc || ''])])
+  ]));
+}
 
-  state.currency = data.currency;
-  state.demo = data.demo;
-  state.stripeKey = data.stripeKey || '';
+let drawnShape = '';
 
-  state.items = Object.fromEntries(
-    data.menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i])))
-  );
-
+function drawMenu(data) {
   el('menuBody').innerHTML = data.menu.map((section) => `
     <h2 class="section-title">${section.section}</h2>
     ${section.groups.map((group) => `
@@ -123,6 +123,43 @@ async function loadMenu() {
 
   renderSite(data.site || {});
   fitLeaders();
+}
+
+// Reads the menu and brings the page into line with it: the rows are redrawn
+// only if the menu itself changed, so a passing count update never disturbs a
+// cart someone is in the middle of filling.
+async function syncMenu() {
+  const res = await fetch('/api/menu');
+  if (!res.ok) return;
+  const data = await res.json();
+
+  state.currency = data.currency;
+  state.demo = data.demo;
+  state.stripeKey = data.stripeKey || '';
+  state.items = Object.fromEntries(
+    data.menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i])))
+  );
+
+  const shape = menuShape(data.menu);
+  if (shape !== drawnShape) {
+    drawnShape = shape;
+    drawMenu(data);
+  }
+
+  // An item can leave the menu, or sell down, while a cart is open.
+  for (const [id, qty] of [...state.cart]) {
+    const item = state.items[id];
+    const left = item?.available ?? 0;
+    if (!item || left <= 0) state.cart.delete(id);
+    else if (qty > left) state.cart.set(id, left);
+  }
+
+  persist();
+  renderCart();
+}
+
+async function loadMenu() {
+  await syncMenu();
 
   el('menuBody').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-delta]');
@@ -130,6 +167,25 @@ async function loadMenu() {
     const id = btn.closest('.row-ctl').dataset.id;
     setQty(id, (state.cart.get(id) || 0) + Number(btn.dataset.delta));
   });
+
+  watchForChanges();
+}
+
+/* ---------- staying current ----------
+   The server holds a stream open and says when the menu or the counts change,
+   so an edit on the staff page lands here at once. The poll is the belt to
+   that brace: it covers a dropped stream, a sleeping phone, or a network that
+   will not carry events. */
+
+function watchForChanges() {
+  try {
+    const stream = new EventSource('/api/events');
+    stream.addEventListener('menu', () => syncMenu());
+  } catch { /* no EventSource; the poll below carries it */ }
+
+  setInterval(() => { if (!document.hidden) syncMenu(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncMenu(); });
+  window.addEventListener('focus', () => syncMenu());
 }
 
 // Each menu row shows a plus until the item is in the cart, then a stepper with
@@ -338,25 +394,7 @@ el('viewMenu').addEventListener('click', () => {
 // Pull the current counts without redrawing the whole menu.
 async function refreshAvailability() {
   try {
-    const res = await fetch('/api/menu');
-    if (!res.ok) return;
-    const data = await res.json();
-    for (const section of data.menu) {
-      for (const group of section.groups) {
-        for (const item of group.items) {
-          if (state.items[item.id]) state.items[item.id].available = item.available;
-        }
-      }
-    }
-    for (const [id, qty] of [...state.cart]) {
-      const left = state.items[id]?.available ?? 0;
-      if (qty > left) {
-        if (left > 0) state.cart.set(id, left);
-        else state.cart.delete(id);
-      }
-    }
-    persist();
-    renderCart();
+    await syncMenu();
   } catch { /* offline; leave the page as it is */ }
 }
 

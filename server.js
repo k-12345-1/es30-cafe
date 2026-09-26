@@ -157,8 +157,15 @@ function commitStock(stock, lines) {
 }
 
 // Order numbers are sequential per day: 1, 2, and so on, reset each morning.
+// The cafe's own day, not UTC's. Order numbers restart and takings roll over
+// at midnight where the cafe is, which on a host in another timezone is not
+// the same moment. TZ is set in the blueprint.
+function localDay(at = Date.now()) {
+  return new Date(at).toLocaleDateString('en-CA');
+}
+
 function nextOrderNumber(orders) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDay();
   const todays = Object.values(orders).filter((o) => o.day === today);
   return { number: 1 + todays.length, day: today };
 }
@@ -238,6 +245,7 @@ app.post('/api/checkout', async (req, res) => {
         };
         commitStock(stock, lines);
         await Promise.all([writeJson(ORDERS_FILE, orders), writeJson(STOCK_FILE, stock)]);
+        announce();
         return { demo: true, url: `${PUBLIC_URL}/success.html?session_id=${key}` };
       }
 
@@ -293,6 +301,38 @@ app.post('/api/subscribe', async (req, res) => {
 // A tidier way in for staff than typing the file name.
 app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
+/* ---------- live updates ----------
+   Open browsers hold a stream, so a change made on the staff page reaches the
+   customers already looking at the menu without them reloading. */
+
+const watchers = new Set();
+
+app.get('/api/events', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no'   // stop any proxy holding the stream in a buffer
+  });
+  res.flushHeaders?.();
+  res.write(': open\n\n');
+  watchers.add(res);
+
+  // Proxies drop a silent connection, so say something every 25 seconds.
+  const beat = setInterval(() => res.write(': beat\n\n'), 25000);
+
+  req.on('close', () => {
+    clearInterval(beat);
+    watchers.delete(res);
+  });
+});
+
+function announce() {
+  for (const res of watchers) {
+    try { res.write('event: menu\ndata: changed\n\n'); } catch { watchers.delete(res); }
+  }
+}
+
 /* ---------- confirmation ---------- */
 
 app.get('/api/order', async (req, res) => {
@@ -322,6 +362,7 @@ app.get('/api/order', async (req, res) => {
     return orders[sessionId];
   });
 
+  announce();
   res.json(publicOrder(finished));
 });
 
@@ -369,7 +410,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
   const available = availability(items, stock, orders);
 
   const paid = Object.values(orders).filter((o) => o.paid && o.orderNumber);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDay();
 
   res.json({
     needsToken: Boolean(ADMIN_TOKEN),
@@ -432,6 +473,7 @@ app.post('/api/stock', staffOnly, async (req, res) => {
       }
       await writeJson(STOCK_FILE, stock);
     });
+    announce();
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -484,6 +526,7 @@ app.post('/api/items', staffOnly, async (req, res) => {
       return item;
     });
 
+    announce();
     res.json({ ok: true, item: added });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -523,6 +566,7 @@ app.patch('/api/items/:id', staffOnly, async (req, res) => {
       return target;
     });
 
+    announce();
     res.json({ ok: true, item: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -553,6 +597,7 @@ app.delete('/api/items/:id', staffOnly, async (req, res) => {
 
       await Promise.all([writeJson(MENU_FILE, trimmed), writeJson(STOCK_FILE, stock)]);
     });
+    announce();
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });

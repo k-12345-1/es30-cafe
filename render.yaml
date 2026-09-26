@@ -17,6 +17,8 @@ services:
       mountPath: /opt/render/project/src/data
       sizeGB: 1
     envVars:
+      - key: TZ
+        value: America/New_York   # the cafe's day, for order numbers and takings
       - key: DATA_DIR
         value: /opt/render/project/src/data
       - key: ADMIN_TOKEN

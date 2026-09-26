@@ -118,14 +118,29 @@ function render() {
     ? `${data.orders.length} order${data.orders.length === 1 ? '' : 's'}, newest first.`
     : 'No orders yet.';
 
-  el('orderList').innerHTML = data.orders.map((order) => `
-    <li>
-      <span class="list-main">
-        <strong>#${order.orderNumber}</strong> ${esc(order.name)}
-        <span class="list-sub">${order.lines.map((l) => `${l.qty} &times; ${esc(l.name)}`).join(', ')}</span>
-      </span>
-      <span class="list-right">${money(order.total)}<br>${when(order.createdAt)}</span>
-    </li>`).join('');
+  // One heading per day, with that day's takings beside it, so a sale can be
+  // counted without adding the rows up by hand.
+  const days = [];
+  for (const order of data.orders) {
+    const key = new Date(order.createdAt).toDateString();
+    const day = days.find((d) => d.key === key);
+    if (day) day.orders.push(order);
+    else days.push({ key, orders: [order] });
+  }
+
+  el('orderList').innerHTML = days.map((day) => `
+    <li class="day">
+      <span class="day-name">${dayName(day.key)}</span>
+      <span class="day-sum">${day.orders.length} order${day.orders.length === 1 ? '' : 's'} &middot; ${money(day.orders.reduce((sum, o) => sum + o.total, 0))}</span>
+    </li>
+    ${day.orders.map((order) => `
+      <li>
+        <span class="list-main">
+          <strong>#${order.orderNumber}</strong> ${esc(order.name)}
+          <span class="list-sub">${order.lines.map((l) => `${l.qty} &times; ${esc(l.name)}`).join(', ')}</span>
+        </span>
+        <span class="list-right">${money(order.total)}<br>${at(order.createdAt)}</span>
+      </li>`).join('')}`).join('');
 
   const n = data.subscribers.length;
   el('entriesNote').textContent = n ? `${n} ${n === 1 ? 'entry' : 'entries'}, newest first.` : 'No entries yet.';
@@ -134,6 +149,23 @@ function render() {
       <span class="list-main">${esc(entry.email)}</span>
       <span class="list-right">${when(entry.addedAt)}</span>
     </li>`).join('');
+}
+
+// Today and yesterday by name; anything older by its date.
+function dayName(key) {
+  const date = new Date(key);
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (key === today) return 'Today';
+  if (key === yesterday) return 'Yesterday';
+  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+// Inside a day the date is already on the heading, so the row carries the time.
+function at(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function when(value) {
