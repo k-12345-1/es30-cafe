@@ -150,8 +150,12 @@ body {
    36px of padding puts the DRINKS letters 46px down from the top of the card. */
 .menu {
   padding-top: 36px;
-  padding-bottom: 124px;
+  padding-bottom: 34px;
 }
+
+/* The extra room at the foot of the list exists to clear the cart pill, so it
+   is only reserved while the pill is on screen. */
+.menu.has-cart { padding-bottom: 124px; }
 
 .section-title {
   font-family: var(--hand);
@@ -220,10 +224,13 @@ body {
   min-width: 8px;
 }
 
+/* This face has tight counters, so a heavy stroke closes up the 0s and 6s.
+   Lighter stroke plus a little tracking keeps the figures legible. */
 .row-price {
-  font-size: 17px;
+  font-size: 18px;
   font-family: var(--hand);
-  -webkit-text-stroke: 0.6px var(--ink);
+  -webkit-text-stroke: 0.25px var(--ink);
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -337,6 +344,7 @@ body {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  letter-spacing: 0.02em;
 }
 
 .cart-bar-cta {
@@ -423,7 +431,7 @@ body {
 }
 
 .cart-line-name { font-size: 16px; }
-.cart-line-sub  { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+.cart-line-sub  { font-size: 13px; opacity: 0.75; margin-top: 3px; letter-spacing: 0.02em; }
 
 .qty { display: flex; align-items: center; gap: 9px; }
 
@@ -447,7 +455,8 @@ body {
 .empty { opacity: 0.55; font-size: 15px; padding: 40px 0; text-align: center; }
 
 .totals {
-  -webkit-text-stroke: 0.8px var(--ink);
+  -webkit-text-stroke: 0.3px var(--ink);
+  letter-spacing: 0.02em;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -605,10 +614,11 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   text-align: left;
 }
 
-.ticket-items li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.ticket-items li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; letter-spacing: 0.02em; }
 
 .ticket-total {
-  -webkit-text-stroke: 0.7px var(--ink);
+  -webkit-text-stroke: 0.25px var(--ink);
+  letter-spacing: 0.02em;
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -1060,7 +1070,10 @@ function onMenuScreen() {
 }
 
 function updateCartBar() {
-  el('cartBar').classList.toggle('show', cartCount() > 0 && onMenuScreen());
+  const showing = cartCount() > 0 && onMenuScreen();
+  el('cartBar').classList.toggle('show', showing);
+  // Only hold room at the foot of the menu while the pill is there to clear.
+  el('menu').classList.toggle('has-cart', showing);
 }
 
 // The Checkout button only takes its solid colour once the order has a name.
@@ -1101,7 +1114,7 @@ el('viewMenu').addEventListener('click', () => {
 
 /* ---------- checkout, simulated ----------
    The live site posts the cart to the server, which prices it and hands off to
-   Stripe. This preview prices it in the page and jumps straight to the ticket. */
+   Stripe. This build prices it in the page and jumps straight to the ticket. */
 
 let previewOrders = 0;
 

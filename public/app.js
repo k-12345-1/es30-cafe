@@ -183,7 +183,10 @@ function onMenuScreen() {
 }
 
 function updateCartBar() {
-  el('cartBar').classList.toggle('show', cartCount() > 0 && onMenuScreen());
+  const showing = cartCount() > 0 && onMenuScreen();
+  el('cartBar').classList.toggle('show', showing);
+  // Only hold room at the foot of the menu while the pill is there to clear.
+  el('menu').classList.toggle('has-cart', showing);
 }
 
 // The Checkout button only takes its solid colour once the order has a name.
