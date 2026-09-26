@@ -149,13 +149,16 @@ function paintClock(msLeft, mode) {
   clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
   clockDrawn = true;
 
-  clock.classList.toggle('resting', mode === 'opening' || mode === 'soon');
+  clock.classList.toggle('resting', mode === 'opening');
+  // Waiting on staff: there is nothing left to count, so the cards go and the
+  // line itself carries the message, at the size of a menu heading.
+  clock.classList.toggle('waiting', mode === 'soon');
   clock.classList.toggle('last-minute', mode === 'closing' && left > 0 && left <= 60_000);
   clock.classList.toggle('over', mode === 'closed');
 
   const labels = {
     opening: 'ES30 Cafe opens in',
-    soon: 'ES30 Cafe opening soon',
+    soon: 'ES30 Cafe is opening soon',
     closing: 'ES30 Cafe closes in',
     closed: 'ES30 Cafe is closed!'
   };

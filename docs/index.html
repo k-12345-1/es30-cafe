@@ -1048,6 +1048,28 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
    leaves an untouched leaf at zero opacity so it cannot ghost through. */
 .flipclock.resting .flip { opacity: 0.8; }
 
+/* Waiting on staff to start the break: no cards, just the sign, set as large
+   and as heavy as a section heading. */
+.flipclock.waiting .flip-row { display: none; }
+
+.flipclock.waiting .flip-label {
+  margin: 0 0 4px;
+  font-size: 31px;
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  opacity: 1;
+  -webkit-text-stroke: 1.1px var(--ink);
+}
+
+/* The sign follows the menu headings at every width. */
+@media (min-width: 900px) and (min-height: 760px) {
+  .flipclock.waiting .flip-label { font-size: 38px; }
+}
+
+@media (max-width: 400px) {
+  .flipclock.waiting .flip-label { font-size: 27px; }
+}
+
 .flip-label {
   margin: 0 0 8px;
   font-size: 13px;
@@ -1508,13 +1530,16 @@ function paintClock(msLeft, mode) {
   clock.querySelectorAll('.flip').forEach((flip, i) => setDigit(flip, digits[i]));
   clockDrawn = true;
 
-  clock.classList.toggle('resting', mode === 'opening' || mode === 'soon');
+  clock.classList.toggle('resting', mode === 'opening');
+  // Waiting on staff: there is nothing left to count, so the cards go and the
+  // line itself carries the message, at the size of a menu heading.
+  clock.classList.toggle('waiting', mode === 'soon');
   clock.classList.toggle('last-minute', mode === 'closing' && left > 0 && left <= 60_000);
   clock.classList.toggle('over', mode === 'closed');
 
   const labels = {
     opening: 'ES30 Cafe opens in',
-    soon: 'ES30 Cafe opening soon',
+    soon: 'ES30 Cafe is opening soon',
     closing: 'ES30 Cafe closes in',
     closed: 'ES30 Cafe is closed!'
   };

@@ -288,6 +288,17 @@
 .list-sub { font-size: 12.5px; opacity: 0.6; margin-top: 2px; }
 .list-right { white-space: nowrap; font-size: 14px; opacity: 0.75; }
 
+/* The ledger's own breathing room: tiles, then the form, then the receipts. */
+#supplyForm { margin-top: 24px; }
+#supplyList { margin-top: 10px; }
+#allTimeNote { margin-top: 14px; }
+
+/* A receipt carries its own remove button, level with the amount. */
+.list-right .remove { margin-left: 10px; vertical-align: middle; }
+
+/* A week that cost more than it took. */
+.tile-value.down { color: var(--alert); -webkit-text-stroke-color: var(--alert); }
+
 .ghost-pill {
   border: 2.5px solid var(--ink);
   border-radius: 999px;

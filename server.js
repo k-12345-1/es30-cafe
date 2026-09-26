@@ -39,6 +39,7 @@ const DATA_DIR = process.env.DATA_DIR || __dirname;
 
 const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const SUPPLIES_FILE = path.join(DATA_DIR, 'supplies.json');
 const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 const BREAK_FILE = path.join(DATA_DIR, 'break.json');
@@ -94,9 +95,12 @@ function cycle(at) {
    Orders are taken from the moment the hour begins, through the break, and on
    past the end of it until staff press stop. */
 
-const SOON_HOLD_MINUTES = 120;
-// How long the closed sign stays up after a break, before the clock leaves the
-// menu altogether until the next one.
+// The wait for staff to press start, and with it the end of the whole cycle:
+// an hour after the doors were due, the menu goes back to saying when to come
+// again, whatever happened in between.
+const SOON_HOLD_MINUTES = 60;
+// How long the closed sign stays up after a break, never past the end of the
+// cycle above.
 const CLOSED_SIGN_MINUTES = 120;
 
 function cafeState(brk = {}, at = Date.now()) {
@@ -148,8 +152,12 @@ function cafeState(brk = {}, at = Date.now()) {
   // at all: it arrives with the hour before opening and leaves once the cycle
   // is well and truly over.
   const lastMark = Math.max(closedAt || 0, endsAt || 0);
+  const cycleEnd = opensAt + SOON_HOLD_MINUTES * 60_000;
+  const signUntil = Math.min(lastMark + CLOSED_SIGN_MINUTES * 60_000, cycleEnd);
   const show =
-    mode !== 'closed' || Boolean(lastMark && at < lastMark + CLOSED_SIGN_MINUTES * 60_000);
+    mode !== 'closed' ||
+    ordersOpen ||                                   // still serving the queue
+    Boolean(lastMark && at < signUntil);
 
   // The next time the doors are due, and the next time the till opens, which
   // is when the hour begins rather than when the break does.
@@ -451,6 +459,16 @@ function localDay(at = Date.now()) {
   return new Date(at).toLocaleDateString('en-CA');
 }
 
+// Monday of the week a local day belongs to. The cafe's books run Monday to
+// Sunday, so a Wednesday's takings and the supplies bought for it land in the
+// same week however they are ordered.
+function weekStart(day = localDay()) {
+  const d = new Date(`${day}T12:00:00`);
+  const back = (d.getDay() + 6) % 7;          // Monday is 0
+  d.setDate(d.getDate() - back);
+  return localDay(d.getTime());
+}
+
 function nextOrderNumber(orders) {
   const today = localDay();
   const todays = Object.values(orders).filter((o) => o.day === today);
@@ -737,6 +755,39 @@ app.delete('/api/break', staffOnly, async (_req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------- what the week cost ----------
+   Takings on their own are not profit. Every receipt for the stock behind the
+   counter goes in here, and the week's spend comes off the week's takings. */
+
+const MAX_SUPPLY_CENTS = 1_000_000;          // $10,000; a typo guard, not a budget
+
+app.post('/api/supplies', staffOnly, async (req, res) => {
+  const what = String(req.body?.what ?? '').trim().slice(0, 80);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body?.day || '')) ? req.body.day : localDay();
+  const cents = Math.round(Number(req.body?.amount) * 100);
+
+  if (!what) return res.status(400).json({ error: 'Say what it was.' });
+  if (!Number.isFinite(cents) || cents <= 0 || cents > MAX_SUPPLY_CENTS) {
+    return res.status(400).json({ error: 'That amount does not look right.' });
+  }
+
+  const entry = { id: randomUUID(), what, day, cents, addedAt: Date.now() };
+  await exclusive(async () => {
+    const list = await readJson(SUPPLIES_FILE, []);
+    list.push(entry);
+    await writeJson(SUPPLIES_FILE, list);
+  });
+  res.json({ ok: true, entry });
+});
+
+app.delete('/api/supplies/:id', staffOnly, async (req, res) => {
+  await exclusive(async () => {
+    const list = await readJson(SUPPLIES_FILE, []);
+    await writeJson(SUPPLIES_FILE, list.filter((e) => e.id !== req.params.id));
+  });
+  res.json({ ok: true });
+});
+
 // A tidier way in for staff than typing the file name.
 app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
@@ -966,8 +1017,9 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
 
   const menu = await readMenu();
   const items = itemsOf(menu);
-  const [stock, orders, subscribers, brk] = await Promise.all([
-    readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, []), readJson(BREAK_FILE, {})
+  const [stock, orders, subscribers, brk, supplies] = await Promise.all([
+    readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, []),
+    readJson(BREAK_FILE, {}), readJson(SUPPLIES_FILE, [])
   ]);
   const available = availability(items, stock, orders);
 
@@ -975,6 +1027,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     .filter(([, o]) => o.paid && o.orderNumber)
     .map(([id, o]) => ({ ...o, id }));
   const today = localDay();
+  const thisWeek = weekStart(today);
 
   res.json({
     needsToken: Boolean(ADMIN_TOKEN),
@@ -1019,9 +1072,20 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     ),
     takings: {
       today: paid.filter((o) => o.day === today).reduce((sum, o) => sum + o.total, 0),
+      week: paid.filter((o) => weekStart(o.day) === thisWeek).reduce((sum, o) => sum + o.total, 0),
       allTime: paid.reduce((sum, o) => sum + o.total, 0),
       ordersToday: paid.filter((o) => o.day === today).length,
+      ordersWeek: paid.filter((o) => weekStart(o.day) === thisWeek).length,
       ordersAllTime: paid.length
+    },
+    supplies: {
+      weekStart: thisWeek,
+      week: supplies.filter((e) => weekStart(e.day) === thisWeek).reduce((sum, e) => sum + e.cents, 0),
+      allTime: supplies.reduce((sum, e) => sum + e.cents, 0),
+      entries: supplies
+        .slice()
+        .sort((a, b) => (b.day < a.day ? -1 : b.day > a.day ? 1 : (b.addedAt || 0) - (a.addedAt || 0)))
+        .slice(0, 100)
     },
     orders: paid
       .slice()

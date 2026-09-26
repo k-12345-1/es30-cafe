@@ -3,9 +3,19 @@ import { execFileSync } from 'node:child_process';
 
 const src = (name) => execFileSync('sed', ['-n', `/^function ${name}/,/^}/p`, 'server.js']).toString();
 
+// The schedule's own numbers, read from the server rather than copied here,
+// so changing one there cannot leave this walk describing last month's cafe.
+const constant = (name) => {
+  const found = execFileSync('grep', ['-m1', `^const ${name} = `, 'server.js']).toString();
+  return Number(found.match(/= *(\d+)/)[1]);
+};
+
 const probe = `
-  const BREAK_MINUTES = 10, OPENS_LEAD_MINUTES = 60, SERVING_LIMIT_MINUTES = 60;
-  const SOON_HOLD_MINUTES = 120, CLOSED_SIGN_MINUTES = 120;
+  const BREAK_MINUTES = ${constant('BREAK_MINUTES')};
+  const OPENS_LEAD_MINUTES = ${constant('OPENS_LEAD_MINUTES')};
+  const SERVING_LIMIT_MINUTES = ${constant('SERVING_LIMIT_MINUTES')};
+  const SOON_HOLD_MINUTES = ${constant('SOON_HOLD_MINUTES')};
+  const CLOSED_SIGN_MINUTES = ${constant('CLOSED_SIGN_MINUTES')};
   const OPEN_WEEKDAY = 3, OPEN_HOUR = 12, OPEN_MINUTE = 0;
   ${src('cycle')}
   ${src('cafeState')}
@@ -34,6 +44,8 @@ show('Wed 12:30', run('2026-09-30T12:30:00'));
 show('Wed 12:59', run('2026-09-30T12:59:00'));
 show('Wed 13:00 (hour up)', run('2026-09-30T13:00:00'));
 show('Wed 13:45 (still waiting on staff)', run('2026-09-30T13:45:00'));
+show('Wed 13:59 (last minute of the wait)', run('2026-09-30T13:59:00'));
+show('Wed 14:00 (the cycle is over)', run('2026-09-30T14:00:00'));
 show('Wed 16:00 (given up waiting)', run('2026-09-30T16:00:00'));
 
 // Staff press start at 13:02, so the break ends at 13:12.
@@ -46,6 +58,7 @@ show('Wed 13:20 (still serving)', run('2026-09-30T13:20:00', started));
 
 const stoppedToo = { ...started, closedAt: new Date('2026-09-30T13:21:00').getTime() };
 show('Wed 13:22 (after staff press stop)', run('2026-09-30T13:22:00', stoppedToo));
+show('Wed 13:59 (sign still up)', run('2026-09-30T13:59:00', stoppedToo));
 show('Wed 14:30 (later that afternoon)', run('2026-09-30T14:30:00', stoppedToo));
 show('Thu 12:30 (next day)', run('2026-10-01T12:30:00', started));
 show('Next Wed 12:30 (hour again)', run('2026-10-07T12:30:00', started));

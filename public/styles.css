@@ -1018,6 +1018,28 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
    leaves an untouched leaf at zero opacity so it cannot ghost through. */
 .flipclock.resting .flip { opacity: 0.8; }
 
+/* Waiting on staff to start the break: no cards, just the sign, set as large
+   and as heavy as a section heading. */
+.flipclock.waiting .flip-row { display: none; }
+
+.flipclock.waiting .flip-label {
+  margin: 0 0 4px;
+  font-size: 31px;
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  opacity: 1;
+  -webkit-text-stroke: 1.1px var(--ink);
+}
+
+/* The sign follows the menu headings at every width. */
+@media (min-width: 900px) and (min-height: 760px) {
+  .flipclock.waiting .flip-label { font-size: 38px; }
+}
+
+@media (max-width: 400px) {
+  .flipclock.waiting .flip-label { font-size: 27px; }
+}
+
 .flip-label {
   margin: 0 0 8px;
   font-size: 13px;

@@ -78,6 +78,8 @@ el('showCode').addEventListener('click', () => {
 function render() {
   showBreak();
 
+  showSupplies();
+
   el('takingsToday').textContent = money(data.takings.today);
   el('takingsAll').textContent = money(data.takings.allTime);
   el('ordersToday').textContent = data.takings.ordersToday;
@@ -191,6 +193,94 @@ function when(value) {
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+/* ---------- supplies, and what is left over ----------
+   Takings are not profit until the week's receipts come off them. The week
+   runs Monday to Sunday, the same week the server files a cost under. */
+
+// The ledger keeps plain YYYY-MM-DD days, unlike the order list above.
+const shortDay = (day) =>
+  new Date(`${day}T12:00:00`).toLocaleDateString(undefined,
+    { weekday: 'short', month: 'short', day: 'numeric' });
+
+function showSupplies() {
+  const takings = data.takings.week || 0;
+  const spent = data.supplies.week || 0;
+  const profit = takings - spent;
+
+  el('weekTakings').textContent = money(takings);
+  el('weekOrders').textContent = data.takings.ordersWeek || 0;
+  el('weekSpent').textContent = money(spent);
+  el('weekProfit').textContent = money(profit);
+  el('weekProfit').classList.toggle('down', profit < 0);
+  el('weekNote').textContent = `Week of ${shortDay(data.supplies.weekStart)}.`;
+
+  const allProfit = data.takings.allTime - data.supplies.allTime;
+  el('allTimeNote').textContent =
+    `All time: ${money(data.takings.allTime)} taken, ${money(data.supplies.allTime)} spent, ` +
+    `${money(allProfit)} profit.`;
+
+  const entries = data.supplies.entries;
+  el('supplyList').innerHTML = entries.length
+    ? entries.map((e) => `
+      <li>
+        <span class="list-main">
+          <span>${esc(e.what)}</span>
+          <span class="list-sub">${shortDay(e.day)}</span>
+        </span>
+        <span class="list-right">
+          ${money(e.cents)}
+          <button type="button" class="remove" data-supply="${e.id}"
+                  aria-label="Remove ${esc(e.what)}">&times;</button>
+        </span>
+      </li>`).join('')
+    : '<li><span class="list-main">Nothing bought yet.</span></li>';
+
+  // The date box starts on today, so a receipt typed in at the counter needs
+  // one field filled, not three.
+  const day = el('supplyDay');
+  if (!day.value) day.value = new Date().toLocaleDateString('en-CA');
+}
+
+el('supplyForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const what = el('supplyWhat').value.trim();
+  const amount = Number(el('supplyAmount').value);
+  const day = el('supplyDay').value;
+  const problem = el('supplyError');
+
+  if (!what) return (problem.textContent = 'Say what you bought.');
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return (problem.textContent = 'Put the cost in, like 48.75.');
+  }
+  problem.textContent = '';
+
+  try {
+    const res = await fetch('/api/supplies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth() },
+      body: JSON.stringify({ what, amount, day })
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Could not save that.');
+    el('supplyWhat').value = '';
+    el('supplyAmount').value = '';
+    await load();
+    say('Cost added');
+  } catch (err) { problem.textContent = err.message; }
+});
+
+el('supplyList').addEventListener('click', async (event) => {
+  const id = event.target.closest('[data-supply]')?.dataset.supply;
+  if (!id) return;
+  try {
+    const res = await fetch('/api/supplies/' + encodeURIComponent(id), {
+      method: 'DELETE', headers: auth()
+    });
+    if (!res.ok) throw new Error('Could not remove that.');
+    await load();
+    say('Cost removed');
+  } catch (err) { say(err.message, true); }
+});
 
 /* ---------- the break clock ---------- */
 

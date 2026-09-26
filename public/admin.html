@@ -57,7 +57,7 @@
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Break</h2>
+        <h2>Timer</h2>
         <span class="break-left" id="breakLeft"></span>
       </div>
 
@@ -66,6 +66,49 @@
         <button class="pay ready" type="button" id="startBreak">Start 10 minutes</button>
         <button class="ghost-pill" type="button" id="stopBreak" hidden>Stop</button>
       </div>
+    </section>
+
+    <section class="panel">
+      <h2>Supplies and profit</h2>
+      <p class="panel-note" id="weekNote"></p>
+      <div class="tiles">
+        <div class="tile">
+          <p class="tile-value" id="weekTakings">$0.00</p>
+          <p class="tile-label">taken this week, <span id="weekOrders">0</span> orders</p>
+        </div>
+        <div class="tile">
+          <p class="tile-value" id="weekSpent">$0.00</p>
+          <p class="tile-label">spent on supplies</p>
+        </div>
+        <div class="tile">
+          <p class="tile-value" id="weekProfit">$0.00</p>
+          <p class="tile-label">profit this week</p>
+        </div>
+      </div>
+
+      <form id="supplyForm" class="add-form">
+        <div class="add-grid">
+          <label class="fld">
+            <span>What you bought</span>
+            <input type="text" id="supplyWhat" placeholder="Costco run: drinks and chips" maxlength="80">
+          </label>
+          <label class="fld fld-narrow">
+            <span>Cost</span>
+            <input type="text" id="supplyAmount" inputmode="decimal" placeholder="48.75">
+          </label>
+          <label class="fld fld-narrow">
+            <span>Day</span>
+            <input type="date" id="supplyDay">
+          </label>
+        </div>
+        <p class="field-error" id="supplyError"></p>
+        <div class="admin-actions">
+          <button class="pay ready" type="submit" id="supplyBtn">Add cost</button>
+        </div>
+      </form>
+
+      <ol class="list" id="supplyList"></ol>
+      <p class="panel-note" id="allTimeNote"></p>
     </section>
 
     <section class="panel">
