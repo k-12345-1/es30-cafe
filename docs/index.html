@@ -1311,7 +1311,12 @@ async function loadMenu() {
 function watchForChanges() {
   try {
     const stream = new EventSource('/api/events');
-    stream.addEventListener('menu', () => syncMenu());
+    // Everyone hears at once, so each page waits a random fraction of a second
+    // before asking: three hundred refreshes spread over half a second rather
+    // than arriving together.
+    stream.addEventListener('menu', () => {
+      setTimeout(() => syncMenu(), Math.random() * 600);
+    });
   } catch { /* no EventSource; the poll below carries it */ }
 
   setInterval(() => { if (!document.hidden) syncMenu(); }, 30000);

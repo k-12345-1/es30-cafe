@@ -3,6 +3,7 @@ import express from 'express';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import Stripe from 'stripe';
 import { MENU as SEED_MENU, SITE } from './menu.js';
 
@@ -42,7 +43,82 @@ const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 
 const app = express();
-app.use(express.json());
+
+// Render terminates TLS in front of the app, so the client's address arrives in
+// a header. Without this every visitor looks like the proxy and the rate limits
+// below would count them as one person.
+app.set('trust proxy', 1);
+
+app.use((_req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Referrer-Policy', 'same-origin');
+  res.set('X-Frame-Options', 'SAMEORIGIN');   // nobody frames the staff page
+  next();
+});
+
+app.use(express.json({ limit: '64kb' }));
+
+/* ---------- who is who ----------
+   Campus wifi puts a whole building behind one address, so the address is a
+   poor way to tell customers apart: one person's checkout would cancel
+   another's hold, and one busy queue would trip a rate limit meant for a
+   script. Each browser gets an id of its own instead, and the address is only
+   the backstop for anything without one. */
+
+function visitor(req, res) {
+  if (req._who) return req._who;               // once per request, whoever asks
+
+  const jar = req.headers.cookie || '';
+  const found = /(?:^|;\s*)es30=([A-Za-z0-9-]{8,64})/.exec(jar);
+  if (found) return (req._who = found[1]);
+
+  const id = req._who = randomUUID();
+  res.cookie?.('es30', id, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: PUBLIC_URL.startsWith('https'),
+    maxAge: 365 * 24 * 60 * 60_000
+  });
+  return id;
+}
+
+/* ---------- rate limits ----------
+   A counter per address per minute. Enough to stop one script hammering
+   checkout or filling the mailing list, light enough that a lecture hall
+   emptying into the cafe never notices. */
+
+const hits = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of hits) if (entry.until < now) hits.delete(key);
+}, 60_000).unref();
+
+// Off only for load testing from a single machine, where every request would
+// otherwise look like one very busy customer.
+const LIMITS_ON = process.env.RATE_LIMIT !== 'off';
+
+function limit(name, max, windowMs = 60_000) {
+  return (req, res, next) => {
+    if (!LIMITS_ON) return next();
+
+    const key = `${name}:${visitor(req, res)}`;
+    const now = Date.now();
+    const entry = hits.get(key);
+
+    if (!entry || entry.until < now) {
+      hits.set(key, { count: 1, until: now + windowMs });
+      return next();
+    }
+
+    entry.count += 1;
+    if (entry.count > max) {
+      res.set('Retry-After', String(Math.ceil((entry.until - now) / 1000)));
+      return res.status(429).json({ error: 'That is a lot of requests. Give it a minute.' });
+    }
+    next();
+  };
+}
 
 // The link-preview tags need the site's own address, which is only known at
 // run time, so the page is served with it filled in. Everything else is static.
@@ -60,7 +136,20 @@ app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-kno
   setHeaders: (res) => res.type('text/plain')
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  // The pictures, the stylesheet and the script are the bulk of a visit and
+  // they rarely change; letting the browser keep them saves the server from
+  // sending them again to every person in the queue.
+  maxAge: '1h',
+  setHeaders: (res, filePath) => {
+    if (/\.(png|ico|woff2?)$/.test(filePath)) res.set('Cache-Control', 'public, max-age=86400');
+  }
+}));
+
+// The menu as JSON, built once and handed to everyone who asks until something
+// changes. Rebuilt at least every second so a lapsing hold shows up promptly.
+let menuPayload = null;
+let menuPayloadAt = 0;
 
 /* ---------- one writer at a time ----------
    Reading a JSON file, changing it and writing it back is several awaits long,
@@ -75,15 +164,27 @@ function exclusive(work) {
   return run;
 }
 
+/* The files are small and this is the only process that writes them, so they
+   are read from disk once and kept in memory. Three hundred people refreshing
+   the menu then costs nothing but the JSON they are sent. */
+
+const store = new Map();
+
 async function readJson(file, fallback) {
+  if (store.has(file)) return store.get(file);
+  let value = fallback;
   try {
-    return JSON.parse(await fs.readFile(file, 'utf8'));
-  } catch {
-    return fallback;
-  }
+    value = JSON.parse(await fs.readFile(file, 'utf8'));
+  } catch { /* first run, or a file that is not there yet */ }
+  store.set(file, value);
+  return value;
 }
 
-const writeJson = (file, value) => fs.writeFile(file, JSON.stringify(value, null, 2));
+async function writeJson(file, value) {
+  store.set(file, value);
+  menuPayload = null;           // anything written can change what customers see
+  await fs.writeFile(file, JSON.stringify(value, null, 2));
+}
 
 /* ---------- the menu ----------
    Lives in menu.json so staff can add and remove items while the cafe is open.
@@ -104,8 +205,15 @@ async function readMenu() {
   return seeded;
 }
 
+// No prototype, so a cart or a form sending "__proto__" or "constructor" as an
+// item id finds nothing rather than finding something inherited from Object.
 const itemsOf = (menu) =>
-  Object.fromEntries(menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i]))));
+  Object.assign(
+    Object.create(null),
+    Object.fromEntries(menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i]))))
+  );
+
+const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
 const slug = (name) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || 'item';
@@ -151,7 +259,7 @@ async function rememberEmail(raw) {
 
 function heldByUnpaidOrders(orders) {
   const cutoff = Date.now() - RESERVE_MINUTES * 60_000;
-  const held = {};
+  const held = Object.create(null);
   for (const order of Object.values(orders)) {
     if (order.paid) continue;
     if (!order.createdAt || order.createdAt < cutoff) continue;
@@ -162,7 +270,7 @@ function heldByUnpaidOrders(orders) {
 
 function availability(items, stock, orders) {
   const held = heldByUnpaidOrders(orders);
-  const available = {};
+  const available = Object.create(null);
   for (const id of Object.keys(items)) {
     available[id] = Math.max(0, (stock[id] || 0) - (held[id] || 0));
   }
@@ -192,22 +300,32 @@ function nextOrderNumber(orders) {
    quantity is checked against the shelf, so neither a tampered cart nor a stale
    page can buy more than exists. */
 
+const MAX_LINES = 40;
+const MAX_PER_ITEM = 99;
+
 function priceCart(rawCart, items, available) {
   if (!Array.isArray(rawCart) || rawCart.length === 0) throw new Error('Your cart is empty.');
+  if (rawCart.length > MAX_LINES) throw new Error('That is more things than the cafe sells.');
 
   const lines = [];
+  const seen = new Set();
+
   for (const entry of rawCart) {
-    const item = items[entry?.id];
-    if (!item) throw new Error('Something in your cart is no longer on the menu.');
+    const id = String(entry?.id ?? '');
+    if (!own(items, id)) throw new Error('Something in your cart is no longer on the menu.');
+    if (seen.has(id)) throw new Error('That item is in the cart twice.');
+    seen.add(id);
+    const item = items[id];
 
     const qty = Math.floor(Number(entry.qty));
     if (!Number.isFinite(qty) || qty < 1) throw new Error(`Invalid quantity for ${item.name}.`);
+    if (qty > MAX_PER_ITEM) throw new Error(`That is more ${item.name} than anyone needs.`);
 
-    const left = available[item.id] ?? 0;
+    const left = available[id] ?? 0;
     if (left <= 0) throw new Error(`${item.name} is sold out.`);
     if (qty > left) throw new Error(`Only ${left} ${item.name} left, and your order asks for ${qty}.`);
 
-    lines.push({ id: item.id, name: item.name, unit: item.price, qty, total: item.price * qty });
+    lines.push({ id, name: item.name, unit: item.price, qty, total: item.price * qty });
   }
   return { lines, total: lines.reduce((sum, l) => sum + l.total, 0) };
 }
@@ -215,12 +333,16 @@ function priceCart(rawCart, items, available) {
 /* ---------- the menu, with what is left of each item ---------- */
 
 app.get('/api/menu', async (_req, res) => {
+  if (menuPayload && Date.now() - menuPayloadAt < 1000) {
+    return res.type('json').send(menuPayload);
+  }
+
   const menu = await readMenu();
   const items = itemsOf(menu);
   const [stock, orders] = await Promise.all([readStock(items), readJson(ORDERS_FILE, {})]);
   const available = availability(items, stock, orders);
 
-  res.json({
+  menuPayload = JSON.stringify({
     menu: menu.map((section) => ({
       ...section,
       groups: section.groups.map((group) => ({
@@ -236,12 +358,50 @@ app.get('/api/menu', async (_req, res) => {
     demo: DEMO,
     stripeKey: DEMO ? '' : PUBLISHABLE
   });
+  menuPayloadAt = Date.now();
+
+  res.type('json').send(menuPayload);
 });
 
 /* ---------- checkout ---------- */
 
-app.post('/api/checkout', async (req, res) => {
+/* One live hold at a time from any one address. Checkouts hold their stock for
+   half an hour, so without this a single script could open carts in a loop and
+   have the whole shelf show as sold out without paying a penny. Starting a new
+   checkout lets go of that address's previous one. */
+
+async function dropEarlierHold(who) {
+  if (DEMO || !who) return;
+
+  const orders = await readJson(ORDERS_FILE, {});
+  const stale = Object.entries(orders)
+    .filter(([, o]) => !o.paid && !o.orderNumber && o.from === who)
+    .map(([id]) => id);
+
+  for (const id of stale) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(id);
+      if (session.payment_status === 'paid') {
+        await bookOrder(id);          // they did pay; keep it
+        continue;
+      }
+      if (session.status === 'open') await stripe.checkout.sessions.expire(id);
+    } catch { /* gone from Stripe: drop it below anyway */ }
+
+    await exclusive(async () => {
+      const current = await readJson(ORDERS_FILE, {});
+      if (current[id] && !current[id].paid) {
+        delete current[id];
+        await writeJson(ORDERS_FILE, current);
+      }
+    });
+  }
+}
+
+app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
   try {
+    await dropEarlierHold(visitor(req, res)).catch(() => {});
+
     const name = String(req.body?.name || '').trim();
     if (name.length < 1 || name.length > 60) {
       return res.status(400).json({ error: 'Please enter the name for the order.' });
@@ -295,7 +455,7 @@ app.post('/api/checkout', async (req, res) => {
 
       orders[session.id] = {
         orderNumber: null, day: null, name, lines, total,
-        currency: CURRENCY, paid: false, createdAt: Date.now()
+        currency: CURRENCY, paid: false, createdAt: Date.now(), from: visitor(req, res)
       };
       await writeJson(ORDERS_FILE, orders);
       return embedded
@@ -312,7 +472,7 @@ app.post('/api/checkout', async (req, res) => {
 
 // The giveaway signup on the confirmation screen. Always answers ok, so a
 // customer who has already paid never sees an error over an optional extra.
-app.post('/api/subscribe', async (req, res) => {
+app.post('/api/subscribe', limit('subscribe', 8), async (req, res) => {
   await rememberEmail(req.body?.email);
   res.json({ ok: true });
 });
@@ -346,7 +506,7 @@ app.patch('/api/orders/:id', staffOnly, async (req, res) => {
 
 // Backing out of the card form. The held stock goes back on the shelf at once
 // rather than sitting out of reach until the session lapses.
-app.post('/api/checkout/abandon', async (req, res) => {
+app.post('/api/checkout/abandon', limit('abandon', 30), async (req, res) => {
   const sessionId = String(req.body?.sessionId || '');
   if (!sessionId || DEMO) return res.json({ ok: true });
 
@@ -388,7 +548,7 @@ app.post('/api/checkout/abandon', async (req, res) => {
 
 const watchers = new Set();
 
-app.get('/api/events', (req, res) => {
+app.get('/api/events', limit('events', 60), (req, res) => {
   res.set({
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -510,15 +670,30 @@ function isLocal(req) {
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
 }
 
+// Compared byte for byte in constant time, so the time a refusal takes says
+// nothing about how much of the code was right.
+function sameSecret(a, b) {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+const guessLimit = limit('staff', 15);
+
 function staffOnly(req, res, next) {
   if (ADMIN_TOKEN) {
     const sent = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
-    if (sent && sent === ADMIN_TOKEN) return next();
-    // Lengths only: enough to spot a stray character in the log, never the code.
-    if (sent) {
-      console.warn(`staff sign-in refused: sent ${sent.length} characters, expected ${ADMIN_TOKEN.length}`);
-    }
-    return res.status(401).json({ error: 'Wrong or missing staff code.' });
+    if (sent && sameSecret(sent, ADMIN_TOKEN)) return next();
+
+    // Wrong code: count it, and stop a script working through the alphabet.
+    return guessLimit(req, res, () => {
+      // Lengths only: enough to spot a stray character in the log, never the code.
+      if (sent) {
+        console.warn(`staff sign-in refused: sent ${sent.length} characters, expected ${ADMIN_TOKEN.length}`);
+      }
+      res.status(401).json({ error: 'Wrong or missing staff code.' });
+    });
   }
   if (isLocal(req)) return next();
   return res.status(401).json({ error: 'Set ADMIN_TOKEN in .env to manage from another machine.' });
@@ -595,7 +770,7 @@ app.post('/api/stock', staffOnly, async (req, res) => {
       const items = itemsOf(await readMenu());
       const stock = await readStock(items);
       for (const [id, raw] of Object.entries(counts)) {
-        if (!items[id]) throw new Error('That item is no longer on the menu.');
+        if (!own(items, id)) throw new Error('That item is no longer on the menu.');
         const qty = Math.floor(Number(raw));
         if (!Number.isFinite(qty) || qty < 0 || qty > 9999) {
           throw new Error(`${items[id].name} needs a whole number from 0 to 9999.`);
@@ -742,4 +917,5 @@ app.listen(PORT, () => {
   console.log(`Admin at ${PUBLIC_URL}/admin.html`);
   if (DEMO) console.log('DEMO MODE: no STRIPE_SECRET_KEY set, payments are simulated.');
   if (!ADMIN_TOKEN) console.log('No ADMIN_TOKEN set: admin only from this machine.');
+  if (!LIMITS_ON) console.log('RATE LIMITS OFF: for load testing only, never in front of customers.');
 });
