@@ -150,9 +150,11 @@
 
 /* ---------- rows ---------- */
 
+/* Every column carries a caption of the same height, and the row hangs from
+   the top, so the three boxes sit on one line whatever is under them. */
 .stock-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 10px 0;
   border-bottom: 2px dotted var(--dot);
@@ -165,8 +167,12 @@
 /* The name takes the room that is left; price and count keep their own narrow
    columns so the rows line up down the list. */
 .stock-fields { flex: 1; min-width: 0; }
+.stock-fields .stock-cap { text-align: left; }
 
 .stock-money { flex: none; text-align: center; }
+
+/* The × is shorter than the fields beside it, so it drops to their middle. */
+.stock-money > .remove { margin-top: 7px; }
 
 .stock-cap {
   display: block;

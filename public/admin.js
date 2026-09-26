@@ -86,6 +86,7 @@ function render() {
   el('stockList').innerHTML = data.items.map((item) => `
     <div class="stock-row" data-id="${item.id}">
       <span class="stock-fields">
+        <span class="stock-cap">item</span>
         <input class="stock-input-name" type="text" name="name-${item.id}"
                value="${esc(item.name)}" aria-label="Name of this item">
         <span class="stock-where">${esc(item.section)}${item.group ? ' &middot; ' + esc(item.group) : ''} &middot; ${item.available} on sale</span>
@@ -100,8 +101,11 @@ function render() {
         <input class="stock-input-qty" type="text" name="${item.id}" inputmode="numeric"
                value="${item.onHand}" aria-label="How many ${esc(item.name)}">
       </span>
-      <button type="button" class="remove" data-id="${item.id}"
-              data-name="${esc(item.name)}" aria-label="Remove ${esc(item.name)}">&times;</button>
+      <span class="stock-money">
+        <span class="stock-cap" aria-hidden="true">&nbsp;</span>
+        <button type="button" class="remove" data-id="${item.id}"
+                data-name="${esc(item.name)}" aria-label="Remove ${esc(item.name)}">&times;</button>
+      </span>
     </div>`).join('');
 
   el('sectionList').innerHTML = data.sections
