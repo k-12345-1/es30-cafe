@@ -1013,9 +1013,10 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 
 #breakClock[hidden] { display: none; }
 
-/* Waiting for a break to start: the same cards, quietly. */
-.flipclock.resting .flip .face,
-.flipclock.resting .flip .leaf { background: var(--ink); opacity: 0.55; }
+/* Waiting for a break to start: the same cards, quietly. Only the resting
+   halves are dimmed; the leaves must stay invisible until one actually turns,
+   or the digit they last carried ghosts through. */
+.flipclock.resting .flip .face { opacity: 0.55; }
 .flipclock.resting .flip-label { opacity: 0.45; }
 
 .flip-label {
