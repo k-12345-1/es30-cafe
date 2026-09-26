@@ -108,8 +108,23 @@
 }
 
 .stock-name { flex: 1; min-width: 0; font-size: 17px; }
-.stock-where { font-size: 12px; opacity: 0.55; display: block; }
+.stock-where { font-size: 12px; opacity: 0.55; display: block; margin-top: 3px; }
 .stock-left { font-size: 13px; opacity: 0.6; white-space: nowrap; }
+
+/* The name takes the room that is left; price and count keep their own narrow
+   columns so the rows line up down the list. */
+.stock-fields { flex: 1; min-width: 0; }
+
+.stock-money { flex: none; text-align: center; }
+
+.stock-cap {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 3px;
+}
 
 .stock-row input {
   width: 78px;
@@ -126,6 +141,21 @@
 }
 
 .stock-row input:focus { outline: none; border-color: var(--ink); }
+
+/* Beat the `.stock-row input` width above: these two need their own widths. */
+.stock-row .stock-input-name {
+  width: 100%;
+  text-align: left;
+}
+
+.stock-row .stock-input-price { width: 84px; }
+
+/* On a phone the row stacks: the name on its own line, then price and count. */
+@media (max-width: 560px) {
+  .stock-row { flex-wrap: wrap; row-gap: 8px; }
+  .stock-fields { flex: 1 1 100%; }
+  .stock-row .stock-input-price, .stock-row .stock-input-qty { width: 72px; }
+}
 
 .remove {
   flex: none;

@@ -483,6 +483,45 @@ app.post('/api/items', staffOnly, async (req, res) => {
   }
 });
 
+// Edit an item in place. The id never changes, so a rename or a new price
+// leaves the stock count and any order in flight pointing at the same thing.
+app.patch('/api/items/:id', staffOnly, async (req, res) => {
+  try {
+    const updated = await exclusive(async () => {
+      const menu = await readMenu();
+      const target = itemsOf(menu)[req.params.id];
+      if (!target) throw new Error('That item is no longer on the menu.');
+
+      if (req.body?.name !== undefined) {
+        const name = String(req.body.name).trim();
+        if (name.length < 1 || name.length > 60) throw new Error('Give the item a name.');
+        target.name = name;
+      }
+
+      if (req.body?.price !== undefined) {
+        const price = Number(req.body.price);
+        if (!Number.isFinite(price) || price < 0 || price > 9999) {
+          throw new Error('Price needs to be a number of dollars, like 3 or 3.50.');
+        }
+        target.price = Math.round(price * 100);
+      }
+
+      if (req.body?.desc !== undefined) {
+        const desc = String(req.body.desc).trim();
+        if (desc) target.desc = desc;
+        else delete target.desc;
+      }
+
+      await writeJson(MENU_FILE, menu);
+      return target;
+    });
+
+    res.json({ ok: true, item: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Remove an item. Past orders keep their own copy of the name and price, so
 // the receipts and the takings are unaffected.
 app.delete('/api/items/:id', staffOnly, async (req, res) => {

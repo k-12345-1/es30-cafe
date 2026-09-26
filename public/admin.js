@@ -67,15 +67,25 @@ function render() {
   el('ordersToday').textContent = data.takings.ordersToday;
   el('ordersAll').textContent = data.takings.ordersAllTime;
 
+  // Name, price and count are all editable in place; Save sends whatever
+  // actually changed.
   el('stockList').innerHTML = data.items.map((item) => `
-    <div class="stock-row">
-      <label class="stock-name" for="qty-${item.id}">
-        ${esc(item.name)}
-        <span class="stock-where">${esc(item.section)}${item.group ? ' &middot; ' + esc(item.group) : ''} &middot; ${money(item.price)}</span>
-      </label>
-      <span class="stock-left">${item.available} on sale</span>
-      <input type="text" id="qty-${item.id}" name="${item.id}" inputmode="numeric"
-             value="${item.onHand}" aria-label="How many ${esc(item.name)}">
+    <div class="stock-row" data-id="${item.id}">
+      <span class="stock-fields">
+        <input class="stock-input-name" type="text" name="name-${item.id}"
+               value="${esc(item.name)}" aria-label="Name of this item">
+        <span class="stock-where">${esc(item.section)}${item.group ? ' &middot; ' + esc(item.group) : ''} &middot; ${item.available} on sale</span>
+      </span>
+      <span class="stock-money">
+        <span class="stock-cap">price</span>
+        <input class="stock-input-price" type="text" name="price-${item.id}" inputmode="decimal"
+               value="${(item.price / 100).toFixed(2)}" aria-label="Price of ${esc(item.name)} in dollars">
+      </span>
+      <span class="stock-money">
+        <span class="stock-cap">have</span>
+        <input class="stock-input-qty" type="text" name="${item.id}" inputmode="numeric"
+               value="${item.onHand}" aria-label="How many ${esc(item.name)}">
+      </span>
       <button type="button" class="remove" data-id="${item.id}"
               data-name="${esc(item.name)}" aria-label="Remove ${esc(item.name)}">&times;</button>
     </div>`).join('');
@@ -118,14 +128,39 @@ function when(value) {
 
 el('stockForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const counts = {};
-  for (const input of el('stockList').querySelectorAll('input')) {
-    counts[input.name] = Number(input.value);
+  const edits = [];
+
+  for (const row of el('stockList').querySelectorAll('.stock-row')) {
+    const id = row.dataset.id;
+    const was = data.items.find((i) => i.id === id);
+    if (!was) continue;
+
+    counts[id] = Number(row.querySelector('.stock-input-qty').value);
+
+    const name = row.querySelector('.stock-input-name').value.trim();
+    const price = Number(row.querySelector('.stock-input-price').value);
+    const change = {};
+    if (name && name !== was.name) change.name = name;
+    if (Number.isFinite(price) && Math.round(price * 100) !== was.price) change.price = price;
+    if (Object.keys(change).length) edits.push([id, change]);
   }
 
   el('saveBtn').disabled = true;
   say('Saving');
   try {
+    // Names and prices first, so a rename and a new count land together.
+    for (const [id, change] of edits) {
+      const res = await fetch(`/api/items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...auth() },
+        body: JSON.stringify(change)
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not save that item.');
+    }
+
     const res = await fetch('/api/stock', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...auth() },
