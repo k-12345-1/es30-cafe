@@ -1154,7 +1154,16 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 .flipclock.last-minute .flip-colon::before,
 .flipclock.last-minute .flip-colon::after { background: var(--alert); }
 
-.flipclock.over .flip-label { opacity: 0.85; }
+/* Closed: the cards hold at zero and the sign stays up. */
+.flipclock.over .flip .face { background: var(--alert); }
+.flipclock.over .flip-colon::before,
+.flipclock.over .flip-colon::after { background: var(--alert); }
+
+.flipclock.over .flip-label {
+  opacity: 1;
+  color: var(--alert);
+  -webkit-text-stroke: 0.3px var(--alert);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .flip.turning .leaf-top,

@@ -217,13 +217,16 @@ function showBreak() {
     left.textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} left`;
     if (ms === 0) {
       clearInterval(breakTimer);
-      left.textContent = 'over';
-      stop.hidden = true;
+      // The customers' menu is showing the closed sign until this is cleared.
+      left.textContent = 'ended: the menu says closed';
+      stop.textContent = 'Clear';
+      stop.hidden = false;
       start.textContent = `Start ${data.breakMinutes} minutes`;
     }
   };
 
   stop.hidden = false;
+  stop.textContent = 'Stop';
   start.textContent = 'Restart';
   paint();
   breakTimer = setInterval(paint, 1000);

@@ -384,7 +384,7 @@ app.get('/api/menu', async (_req, res) => {
     // whose own clock is a minute out still shows the same seconds as the rest
     // of the room.
     now: Date.now(),
-    breakEndsAt: brk.endsAt && brk.endsAt > Date.now() ? brk.endsAt : null,
+    breakEndsAt: brk.endsAt || null,
     menu: menu.map((section) => ({
       ...section,
       groups: section.groups.map((group) => ({
@@ -816,7 +816,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
     needsToken: Boolean(ADMIN_TOKEN),
     currency: CURRENCY,
     now: Date.now(),
-    breakEndsAt: brk.endsAt && brk.endsAt > Date.now() ? brk.endsAt : null,
+    breakEndsAt: brk.endsAt || null,
     breakMinutes: BREAK_MINUTES,
     sections: menu.map((s) => ({
       section: s.section,

@@ -153,7 +153,9 @@ function paintClock(msLeft, resting = false) {
   clock.classList.toggle('over', !resting && left === 0);
 
   clock.querySelector('.flip-label').textContent =
-    resting ? '10-Minute Break Countdown' : left === 0 ? 'break over' : 'break ends in';
+    resting ? '10-Minute Break Countdown'
+      : left === 0 ? 'ES30 Cafe is closed!'
+      : 'break ends in';
 }
 
 const BREAK_LENGTH_MS = 10 * 60_000;
@@ -172,11 +174,9 @@ function runClock() {
   const tick = () => {
     const left = breakEndsAt - (Date.now() + clockOffset);
     paintClock(left);
-    if (left <= -30_000) {          // half a minute after the end, back to waiting
-      breakEndsAt = null;
-      clearInterval(clockTimer);
-      runClock();
-    }
+    // At zero the cafe is closed and stays closed: the sign holds until staff
+    // clear it or start the next break.
+    if (left <= 0) clearInterval(clockTimer);
   };
 
   tick();
