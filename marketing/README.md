@@ -9,7 +9,11 @@
 - `slide.html` — the source. Edit it, then rebuild:
 
       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
-        --window-size=1920,1080 --screenshot=es30-cafe-slide.png slide.html
+        --window-size=1920,1080 --virtual-time-budget=4000 \
+        --screenshot=es30-cafe-slide.png slide.html
+
+  The time budget is not optional: without it the shot can be taken before the
+  web fonts arrive, and the slide renders in a fallback face.
 
   Then rebuild the .pptx around the new picture with `make-pptx.py`.
 
