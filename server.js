@@ -3,7 +3,7 @@ import express from 'express';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import Stripe from 'stripe';
 import { MENU as SEED_MENU, SITE } from './menu.js';
 
@@ -124,14 +124,45 @@ function limit(name, max, windowMs = 60_000) {
   };
 }
 
-// The link-preview tags need the site's own address, which is only known at
-// run time, so the page is served with it filled in. Everything else is static.
-const INDEX = path.join(__dirname, 'public', 'index.html');
-const indexPage = (await fs.readFile(INDEX, 'utf8')).replaceAll('%PUBLIC_URL%', PUBLIC_URL);
+/* ---------- pages ----------
+   Two things happen to a page on its way out: the link-preview tags get this
+   site's real address, which is only known at run time, and every asset it
+   asks for gets a stamp.
 
-app.get(['/', '/index.html'], (_req, res) => {
-  res.type('html').send(indexPage);
-});
+   The stamp is what stops a browser holding yesterday's script. Assets are
+   cached hard so a crowd is cheap to serve, and the stamp changes whenever the
+   file does, so a deploy reaches everyone at once instead of an hour later. */
+
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const STAMPED = ['app.js', 'styles.css', 'admin.js', 'admin.css', 'banner.png', 'drink.png'];
+
+const assetHash = createHash('sha1');
+for (const name of STAMPED) {
+  assetHash.update(await fs.readFile(path.join(PUBLIC_DIR, name)).catch(() => Buffer.alloc(0)));
+}
+const ASSET_V = assetHash.digest('hex').slice(0, 8);
+
+function page(html) {
+  let out = html.replaceAll('%PUBLIC_URL%', PUBLIC_URL);
+  for (const name of STAMPED) {
+    out = out.replaceAll(`"${name}"`, `"${name}?v=${ASSET_V}"`);
+  }
+  return out;
+}
+
+const indexPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'index.html'), 'utf8'));
+const adminPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'admin.html'), 'utf8'));
+const successPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'success.html'), 'utf8'));
+
+// The pages themselves are never cached; only what they point at is.
+const sendPage = (body) => (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.type('html').send(body);
+};
+
+app.get(['/', '/index.html'], sendPage(indexPage));
+app.get('/admin.html', sendPage(adminPage));
+app.get('/success.html', sendPage(successPage));
 
 // Apple's domain-verification file lives in a dot-folder, which the static
 // middleware hides by default. Wallets on your own domain need it served.
