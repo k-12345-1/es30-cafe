@@ -16,6 +16,10 @@ const PUBLIC_URL =
   process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
 const CURRENCY = (process.env.CURRENCY || 'usd').toLowerCase();
 const SECRET = process.env.STRIPE_SECRET_KEY;
+// The publishable key is safe in the page: it is what Stripe.js needs to draw
+// the card form inside the cafe. With it set, checkout happens on the order
+// screen; without it, Stripe's own hosted page is used instead.
+const PUBLISHABLE = process.env.STRIPE_PUBLISHABLE_KEY || '';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 // How long an unpaid checkout holds its items before the stock goes back on sale.
@@ -202,7 +206,8 @@ app.get('/api/menu', async (_req, res) => {
     })),
     site: SITE,
     currency: CURRENCY,
-    demo: DEMO
+    demo: DEMO,
+    stripeKey: DEMO ? '' : PUBLISHABLE
   });
 });
 
@@ -233,6 +238,8 @@ app.post('/api/checkout', async (req, res) => {
         return { demo: true, url: `${PUBLIC_URL}/success.html?session_id=${key}` };
       }
 
+      const embedded = Boolean(PUBLISHABLE);
+
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
         line_items: lines.map((l) => ({
@@ -241,8 +248,17 @@ app.post('/api/checkout', async (req, res) => {
         })),
         metadata: { customer_name: name },
         expires_at: Math.floor(Date.now() / 1000) + RESERVE_MINUTES * 60,
-        success_url: `${PUBLIC_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${PUBLIC_URL}/`
+        // Embedded: the card form is drawn inside the cafe and Stripe sends the
+        // customer to the return_url when it is done. Hosted: Stripe's own page.
+        ...(embedded
+          ? {
+              ui_mode: 'embedded',
+              return_url: `${PUBLIC_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`
+            }
+          : {
+              success_url: `${PUBLIC_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+              cancel_url: `${PUBLIC_URL}/`
+            })
       });
 
       orders[session.id] = {
@@ -250,7 +266,7 @@ app.post('/api/checkout', async (req, res) => {
         currency: CURRENCY, paid: false, createdAt: Date.now()
       };
       await writeJson(ORDERS_FILE, orders);
-      return { url: session.url };
+      return embedded ? { clientSecret: session.client_secret } : { url: session.url };
     });
 
     res.json(result);

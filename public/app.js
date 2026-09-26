@@ -1,4 +1,4 @@
-const state = { cart: new Map(), items: {}, currency: 'usd', demo: false };
+const state = { cart: new Map(), items: {}, currency: 'usd', demo: false, stripeKey: '' };
 
 const el = (id) => document.getElementById(id);
 
@@ -97,6 +97,7 @@ async function loadMenu() {
 
   state.currency = data.currency;
   state.demo = data.demo;
+  state.stripeKey = data.stripeKey || '';
 
   state.items = Object.fromEntries(
     data.menu.flatMap((s) => s.groups.flatMap((g) => g.items.map((i) => [i.id, i])))
@@ -361,6 +362,43 @@ async function refreshAvailability() {
 
 /* ---------- checkout ---------- */
 
+/* ---------- paying, without leaving the cafe ----------
+   Stripe draws its card form into the card itself. Stripe sends the customer
+   to the order-number screen when the payment is done, so the only page that
+   changes is the one at the end. */
+
+let checkoutWidget;
+
+async function openPayScreen(clientSecret) {
+  const screen = el('payScreen');
+  el('payTotal').textContent = `Total ${el('sheetTotal').textContent}`;
+
+  const stripe = Stripe(state.stripeKey);
+  checkoutWidget = await stripe.initEmbeddedCheckout({ clientSecret });
+
+  screen.hidden = false;
+  checkoutWidget.mount('#stripeMount');
+}
+
+// Leaving the payment screen destroys the form: Stripe only allows one mounted
+// at a time, and the next attempt needs a fresh session anyway.
+function closePayScreen() {
+  if (checkoutWidget) {
+    checkoutWidget.destroy();
+    checkoutWidget = undefined;
+  }
+  el('payScreen').hidden = true;
+  el('payBtn').disabled = false;
+  el('payBtn').textContent = 'Checkout';
+}
+
+el('closePay').addEventListener('click', () => {
+  closePayScreen();
+  // The cart was cleared when the session opened; rebuild it from the order
+  // that is still on screen so nothing is lost by backing out.
+  renderCart();
+});
+
 el('checkoutForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = el('name').value.trim();
@@ -394,6 +432,11 @@ el('checkoutForm').addEventListener('submit', async (e) => {
     // The cart has been handed to Stripe. Clear it so a back button does not
     // leave a stale order sitting in the sheet.
     localStorage.removeItem('es30.cart');
+
+    if (data.clientSecret) {
+      await openPayScreen(data.clientSecret);
+      return;
+    }
     window.location.href = data.url;
   } catch (err) {
     el('err').textContent = err.message;

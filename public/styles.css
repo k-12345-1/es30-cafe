@@ -406,6 +406,42 @@ body {
   font-size: 14px;
 }
 
+/* ---------- paying, inside the card ---------- */
+
+/* Sits above the order sheet and fills the card, so the customer stays on the
+   cafe's own screen while Stripe collects the card. */
+.pay-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  padding: 26px 20px calc(20px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+#payScreen[hidden] { display: none; }
+
+.pay-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pay-top .close { font-size: 26px; padding: 2px 4px; }
+
+.pay-total {
+  margin: 0;
+  font-size: 19px;
+  -webkit-text-stroke: 0.4px var(--ink);
+  letter-spacing: 0.02em;
+}
+
+/* Stripe renders into an iframe of its own; it only needs the width. */
+#stripeMount { flex: 1 0 auto; }
+
 /* ---------- cart sheet, inside the card ---------- */
 
 .sheet-scrim {

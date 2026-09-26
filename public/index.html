@@ -103,9 +103,19 @@
       </form>
     </aside>
 
+    <!-- Stripe draws its card form into this, so paying never leaves the cafe. -->
+    <section class="pay-screen" id="payScreen" hidden aria-label="Payment">
+      <div class="pay-top">
+        <button class="close" id="closePay" aria-label="Back to your order">&larr;</button>
+        <p class="pay-total" id="payTotal"></p>
+      </div>
+      <div id="stripeMount"></div>
+    </section>
+
   </div>
 </div>
 
+<script src="https://js.stripe.com/v3/"></script>
 <script src="app.js"></script>
 </body>
 </html>

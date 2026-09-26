@@ -22,5 +22,7 @@ services:
         sync: false        # set this in the Render dashboard, never in the repo
       - key: STRIPE_SECRET_KEY
         sync: false        # leave unset to run in demo mode
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false        # pk_... — with it set, the card form opens in the cafe
       # PUBLIC_URL is optional: the app falls back to RENDER_EXTERNAL_URL,
       # which Render fills in with the live address of this service.
