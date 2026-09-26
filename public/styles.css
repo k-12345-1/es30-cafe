@@ -134,7 +134,29 @@ body {
 }
 
 .art-banner { width: min(100%, 340px); }
-.art-drink  { width: min(88%, 300px); }
+.art-drink-wrap { width: min(88%, 300px); max-width: calc(40svh * 760 / 543); }
+
+/* The drawing carries a maker's mark on the face of the can. The wrapper is
+   the size of the picture, so the mark is placed as a share of it and holds
+   its spot whatever the screen does. */
+.art-drink-wrap {
+  position: relative;
+  display: block;
+  margin: 0 auto;
+  container-type: inline-size;
+  line-height: 0;
+}
+
+.maker {
+  position: absolute;
+  right: 23.5%;
+  bottom: 20.5%;
+  font-size: 3.4cqw;
+  line-height: 1.15;
+  text-align: right;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
 
 .ghost-btn {
   background: none;
@@ -744,11 +766,12 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   height: auto;
 }
 
+.art-drink-wrap { flex: none; }
+
 .art-drink {
-  flex: none;
+  width: 100%;
   aspect-ratio: 760 / 543;
   height: auto;
-  max-height: 40svh;
 }
 
 .order-number .hash {
@@ -859,7 +882,7 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   .row-ctl { min-width: 94px; }
 
   .art-banner { width: min(100%, 420px); }
-  .art-drink { width: min(86%, 360px); }
+  .art-drink-wrap { width: min(86%, 360px); }
 
   .cart-bar { font-size: 17px; }
   .cart-bar-cta { font-size: 16px; padding: 9px 20px; }
@@ -952,7 +975,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
    sheet, still fit without scrolling. */
 @media (max-height: 620px) {
   .screen { padding-top: 20px; padding-bottom: 22px; }
-  .art-drink { max-height: 30svh; }
+  .art-drink-wrap { max-width: calc(30svh * 760 / 543); }
   .art-banner { width: min(100%, 280px); }
   .ribbon .r4 { font-size: 24px; padding: 7px 30px; }
   .ghost-btn { font-size: 22px; padding-top: 4px; }
@@ -990,7 +1013,7 @@ html::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 999px; }
 /* Landscape phones. Very little height, so the splash gets the minimum it needs. */
 @media (max-height: 440px) {
   .screen { padding-top: 14px; padding-bottom: 16px; }
-  .art-drink { max-height: 26svh; }
+  .art-drink-wrap { max-width: calc(26svh * 760 / 543); }
   .art-banner { width: min(100%, 230px); }
   .splash { gap: 18px; }
   .ribbon .r4 { font-size: 20px; padding: 6px 24px; }
