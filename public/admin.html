@@ -22,7 +22,16 @@
   <!-- Sign in. Replaced by the dashboard once the code is accepted. -->
   <form class="signin" id="signin" hidden>
     <label for="token">Staff code</label>
-    <input type="password" id="token" autocomplete="current-password">
+    <div class="pw">
+      <input type="password" id="token" autocomplete="current-password">
+      <button type="button" class="pw-eye" id="showCode" aria-pressed="false" aria-label="Show the code">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path class="pw-open" d="M1.8 12s3.7-6 10.2-6 10.2 6 10.2 6-3.7 6-10.2 6S1.8 12 1.8 12z"/>
+          <circle class="pw-open" cx="12" cy="12" r="3.1"/>
+          <line class="pw-slash" x1="4" y1="20" x2="20" y2="4"/>
+        </svg>
+      </button>
+    </div>
     <p class="field-error" id="signinError"></p>
     <button class="pay ready" type="submit">Sign in</button>
   </form>

@@ -11,6 +11,11 @@
   /* One handwriting face throughout, as in the reference. Headings are the same
      letterforms made heavier with a stroke rather than a second family, which is
      what keeps the menu looking hand-lettered by one person. */
+  /* The reading column. The card fills the window so its scrollbar sits at the
+     edge of the screen; this is the width the content inside it holds to. */
+  --col: 440px;
+  --gutter: 28px;
+
   --hand: "Architects Daughter", "Bradley Hand", cursive;
   --banner: "Archivo Narrow", "Helvetica Neue", sans-serif;
 }
@@ -39,7 +44,7 @@ body {
    to sit in, not a card on a different ground, so it has no edge of its own. */
 .card {
   position: relative;
-  width: min(440px, 100%);
+  width: 100%;
   height: 100vh;
   height: 100svh;
   max-height: 880px;
@@ -54,7 +59,11 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-.screen { padding: 34px 28px 40px; }
+.screen {
+  width: min(var(--col), 100%);
+  margin-inline: auto;
+  padding: 34px 28px 40px;
+}
 
 /* Only one screen is in the card at a time, so the opening screen and its
    button are not visible behind the menu. */
@@ -365,8 +374,10 @@ body {
 
 .cart-bar {
   position: absolute;
-  left: 20px;
-  right: 20px;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: min(calc(var(--col) - 40px), calc(100% - 40px));
   bottom: 30px;
   transform: translateY(200%);
   visibility: hidden;
@@ -471,6 +482,16 @@ body {
 }
 
 .sheet.open { transform: none; }
+
+/* Both cover the whole card, so nothing shows at the sides, but their contents
+   line up with the menu's column. */
+.sheet,
+.pay-screen { align-items: center; }
+
+.sheet > *,
+.pay-screen > * {
+  width: min(calc(var(--col) - 2 * var(--gutter)), 100%);
+}
 
 .sheet-top {
   display: flex;
@@ -808,7 +829,8 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
    rather than phone-sized text stranded in the middle of it. */
 
 @media (min-width: 900px) and (min-height: 760px) {
-  .card { width: 560px; max-height: 940px; }
+  :root { --col: 560px; }
+  .card { max-height: 940px; }
 
   .ribbon .r4 { font-size: 36px; padding: 12px 62px; }
   .ghost-btn { font-size: 32px; }

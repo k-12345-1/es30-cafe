@@ -62,6 +62,17 @@ el('signin').addEventListener('submit', async (e) => {
   }
 });
 
+// The code is typed from a phone as often as a keyboard, so it can be checked
+// before it is sent.
+el('showCode').addEventListener('click', () => {
+  const field = el('token');
+  const showing = field.type === 'text';
+  field.type = showing ? 'password' : 'text';
+  el('showCode').setAttribute('aria-pressed', String(!showing));
+  el('showCode').setAttribute('aria-label', showing ? 'Show the code' : 'Hide the code');
+  field.focus();
+});
+
 /* ---------- drawing the dashboard ---------- */
 
 function render() {

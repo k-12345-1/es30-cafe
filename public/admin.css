@@ -90,6 +90,40 @@
 }
 
 .signin input:focus { outline: none; border-color: var(--ink); }
+
+/* The eye sits inside the field's right edge. */
+.pw { position: relative; }
+.pw input { padding-right: 46px; }
+
+.pw-eye {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 50px;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+
+.pw-eye:hover { opacity: 1; }
+
+.pw-eye svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+/* Struck through while the code is hidden, open once it is showing. */
+.pw-eye[aria-pressed="true"] .pw-slash { display: none; }
 .signin .pay { width: auto; padding: 13px 34px; }
 .admin-body.signed-out .signin .pay { margin-top: 6px; }
 
