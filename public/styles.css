@@ -739,7 +739,7 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
    phone, small laptop) shrinks it instead of pushing the button off. */
 .art-splash {
   flex: none;
-  aspect-ratio: 1000 / 1490;
+  aspect-ratio: 1000 / 1062;
   height: auto;
   max-height: 64svh;
 }
