@@ -20,7 +20,10 @@ const SECRET = process.env.STRIPE_SECRET_KEY;
 // the card form inside the cafe. With it set, checkout happens on the order
 // screen; without it, Stripe's own hosted page is used instead.
 const PUBLISHABLE = process.env.STRIPE_PUBLISHABLE_KEY || '';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+// Trimmed: a dashboard field can pick up a trailing newline or space when the
+// code is pasted, and a staff member has no way to see why the code they typed
+// correctly is being refused.
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || '').trim();
 
 // How long an unpaid checkout holds its items before the stock goes back on sale.
 const RESERVE_MINUTES = 30;
@@ -344,8 +347,12 @@ function isLocal(req) {
 
 function staffOnly(req, res, next) {
   if (ADMIN_TOKEN) {
-    const sent = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+    const sent = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
     if (sent && sent === ADMIN_TOKEN) return next();
+    // Lengths only: enough to spot a stray character in the log, never the code.
+    if (sent) {
+      console.warn(`staff sign-in refused: sent ${sent.length} characters, expected ${ADMIN_TOKEN.length}`);
+    }
     return res.status(401).json({ error: 'Wrong or missing staff code.' });
   }
   if (isLocal(req)) return next();
