@@ -359,6 +359,12 @@
 .list li.order .list-right { display: flex; align-items: center; gap: 10px; text-align: right; }
 .order-when { line-height: 1.35; }
 
+/* Two pills in a panel heading, which wrap rather than squeeze on a phone. */
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* An address carries its own remove button, level with the date. */
+#entryList .list-right { display: flex; align-items: center; gap: 10px; }
+
 .order-who { display: block; }
 
 /* A hand-drawn box rather than the browser's, to match the rest. */

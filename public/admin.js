@@ -210,8 +210,13 @@ function render() {
   el('entryList').innerHTML = data.subscribers.map((entry) => `
     <li>
       <span class="list-main">${esc(entry.email)}</span>
-      <span class="list-right">${when(entry.addedAt)}</span>
+      <span class="list-right">
+        ${when(entry.addedAt)}
+        <button type="button" class="remove" data-entry="${esc(entry.email)}"
+                aria-label="Remove ${esc(entry.email)}">&times;</button>
+      </span>
     </li>`).join('');
+  el('clearEntries').hidden = !n;
 }
 
 // What a customer can actually add right now, and why it differs from the
@@ -626,6 +631,33 @@ el('copyBtn').addEventListener('click', async () => {
     window.prompt('Copy the addresses:', text);
   }
   setTimeout(() => { el('copyBtn').textContent = 'Copy all'; }, 1600);
+});
+
+async function dropEntries(email) {
+  const res = await fetch('/api/subscribers' + (email ? '?email=' + encodeURIComponent(email) : ''), {
+    method: 'DELETE', headers: auth()
+  });
+  if (!res.ok) throw new Error('Could not remove that.');
+  await load();
+}
+
+el('entryList').addEventListener('click', async (event) => {
+  const email = event.target.closest('[data-entry]')?.dataset.entry;
+  if (!email) return;
+  try {
+    await dropEntries(email);
+    say('Address removed');
+  } catch (err) { say(err.message, true); }
+});
+
+el('clearEntries').addEventListener('click', async () => {
+  const n = data?.subscribers.length || 0;
+  if (!n) return;
+  if (!confirm(`Delete all ${n} address${n === 1 ? '' : 'es'}? This cannot be undone.`)) return;
+  try {
+    await dropEntries('');
+    say('Giveaway list cleared');
+  } catch (err) { say(err.message, true); }
 });
 
 /* ---------- start ---------- */

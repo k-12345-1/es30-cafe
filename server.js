@@ -723,6 +723,22 @@ app.post('/api/subscribe', limit('subscribe', 8), async (req, res) => {
   res.json({ ok: true });
 });
 
+// Taking an address off the giveaway list: someone asked to come off it, or it
+// was typed wrong. One at a time, or the whole list at once.
+app.delete('/api/subscribers', staffOnly, async (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase();
+  let left = 0;
+
+  await exclusive(async () => {
+    const list = await readJson(EMAILS_FILE, []);
+    const kept = email ? list.filter((entry) => entry.email !== email) : [];
+    left = kept.length;
+    await writeJson(EMAILS_FILE, kept);
+  });
+
+  res.json({ ok: true, left });
+});
+
 /* ---------- the break ----------
    One clock for the room: staff start it, and every phone counts down to the
    same moment rather than to its own idea of ten minutes. */
