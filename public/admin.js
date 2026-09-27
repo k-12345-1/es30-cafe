@@ -10,7 +10,10 @@ const money = (cents) =>
     currency: (data?.currency || 'usd').toUpperCase()
   }).format(cents / 100);
 
-const esc = (str) => String(str).replace(/[&<>"']/g, (c) =>
+// One order is an order, not 1 orders.
+const plural = (n) => (n === 1 ? 'order' : 'orders');
+
+const esc = (str) = String(str).replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const auth = () => (token ? { Authorization: 'Bearer ' + token } : {});
@@ -132,6 +135,8 @@ function render() {
   el('takingsAll').textContent = money(data.takings.allTime);
   el('ordersToday').textContent = data.takings.ordersToday;
   el('ordersAll').textContent = data.takings.ordersAllTime;
+  el('ordersTodayWord').textContent = plural(data.takings.ordersToday);
+  el('ordersAllWord').textContent = plural(data.takings.ordersAllTime);
 
   // Name, price and count are all editable in place; Save sends whatever
   // actually changed.
@@ -267,6 +272,7 @@ function showSupplies() {
 
   el('weekTakings').textContent = money(takings);
   el('weekOrders').textContent = data.takings.ordersWeek || 0;
+  el('weekOrdersWord').textContent = plural(data.takings.ordersWeek || 0);
   el('weekSpent').textContent = money(spent);
   el('weekProfit').textContent = money(profit);
   el('weekProfit').classList.toggle('down', profit < 0);
