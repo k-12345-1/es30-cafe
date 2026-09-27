@@ -359,6 +359,21 @@
 .list li.order .list-right { display: flex; align-items: center; gap: 10px; text-align: right; }
 .order-when { line-height: 1.35; }
 
+/* Whether new orders are arriving on their own, said quietly. */
+.live-dot { font-size: 13px; opacity: 0.6; white-space: nowrap; }
+.live-dot::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+  vertical-align: middle;
+}
+.live-dot.off { color: var(--alert); opacity: 0.8; }
+.live-dot.off::before { background: var(--alert); }
+
 /* Two pills in a panel heading, which wrap rather than squeeze on a phone. */
 .head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 

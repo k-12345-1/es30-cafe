@@ -13,7 +13,7 @@ const money = (cents) =>
 // One order is an order, not 1 orders.
 const plural = (n) => (n === 1 ? 'order' : 'orders');
 
-const esc = (str) = String(str).replace(/[&<>"']/g, (c) =>
+const esc = (str) => String(str).replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const auth = () => (token ? { Authorization: 'Bearer ' + token } : {});
@@ -52,6 +52,8 @@ async function load() {
    rather than the counter staff reaching for refresh. A redraw while someone
    is mid-edit would take their typing with it, so it waits for the field. */
 
+const POLL_MS = 15_000;
+
 let stream;
 let redrawWanted = false;
 
@@ -80,18 +82,50 @@ document.addEventListener('focusout', () => {
   if (redrawWanted) setTimeout(refresh, 250);
 });
 
-function watchForChanges() {
-  if (stream) return;                      // one stream per page, not per load
+let watching = false;
+
+// The stream itself. A phone that sleeps, a tunnel, a Render restart: any of
+// them can drop it, so a closed stream is opened again rather than left dead.
+function connect() {
+  if (stream) return;
   try {
     stream = new EventSource('/api/events');
     stream.addEventListener('menu', refresh);
-  } catch { /* no stream: the poll below carries it */ }
+    stream.addEventListener('open', () => showLive(true));
+    stream.onerror = () => {
+      showLive(false);
+      if (stream && stream.readyState === EventSource.CLOSED) {
+        stream = null;
+        setTimeout(connect, 3_000);
+      }
+    };
+  } catch {
+    showLive(false);                       // the poll below carries it alone
+  }
+}
 
-  // A backstop for a dropped stream or a phone that slept through it.
-  setInterval(refresh, 30_000);
+function showLive(on) {
+  const dot = el('liveDot');
+  if (!dot) return;
+  dot.textContent = on ? 'updating live' : 'reconnecting…';
+  dot.classList.toggle('off', !on);
+}
+
+function watchForChanges() {
+  connect();
+  if (watching) return;                    // the listeners go on once
+  watching = true;
+
+  // Backstops, in order of how often they save the day: coming back to the
+  // page, a poll while it is open, and the browser restoring it from its cache.
+  setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, POLL_MS);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') refresh();
+    if (document.visibilityState !== 'visible') return;
+    connect();
+    refresh();
   });
+  window.addEventListener('focus', refresh);
+  window.addEventListener('pageshow', () => { connect(); refresh(); });
 }
 
 el('signin').addEventListener('submit', async (e) => {
