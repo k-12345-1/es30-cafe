@@ -40,7 +40,55 @@ async function load() {
   el('signin').hidden = true;
   el('dash').hidden = false;
   render();
+  watchForChanges();
   return true;
+}
+
+/* ---------- keeping the page current ----------
+   Orders arrive while the page is open, so the server's stream brings them in
+   rather than the counter staff reaching for refresh. A redraw while someone
+   is mid-edit would take their typing with it, so it waits for the field. */
+
+let stream;
+let redrawWanted = false;
+
+const midEdit = () => {
+  const here = document.activeElement;
+  return Boolean(here && (here.tagName === 'INPUT' || here.tagName === 'TEXTAREA'));
+};
+
+let retry;
+
+async function refresh() {
+  if (midEdit()) {
+    // Come back for it: leaving the field is the usual cue, but a phone that
+    // never fires one still gets the new orders a moment later.
+    redrawWanted = true;
+    clearTimeout(retry);
+    retry = setTimeout(refresh, 3_000);
+    return;
+  }
+  redrawWanted = false;
+  clearTimeout(retry);
+  try { await load(); } catch { /* the next event or the poll will do it */ }
+}
+
+document.addEventListener('focusout', () => {
+  if (redrawWanted) setTimeout(refresh, 250);
+});
+
+function watchForChanges() {
+  if (stream) return;                      // one stream per page, not per load
+  try {
+    stream = new EventSource('/api/events');
+    stream.addEventListener('menu', refresh);
+  } catch { /* no stream: the poll below carries it */ }
+
+  // A backstop for a dropped stream or a phone that slept through it.
+  setInterval(refresh, 30_000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refresh();
+  });
 }
 
 el('signin').addEventListener('submit', async (e) => {
@@ -149,7 +197,12 @@ function render() {
           <span class="order-who"><strong>#${order.orderNumber}</strong> ${esc(order.name)}</span>
           <span class="list-sub">${order.lines.map((l) => `${l.qty} &times; ${esc(l.name)}`).join(', ')}</span>
         </span>
-        <span class="list-right">${money(order.total)}<br>${at(order.createdAt)}</span>
+        <span class="list-right">
+          <span class="order-when">${money(order.total)}<br>${at(order.createdAt)}</span>
+          <button type="button" class="remove" data-drop="${order.id}"
+                  data-number="${order.orderNumber}"
+                  aria-label="Delete order ${order.orderNumber}">&times;</button>
+        </span>
       </li>`).join('')}`).join('');
 
   const n = data.subscribers.length;
@@ -171,14 +224,13 @@ function stockNote(item) {
   return `${item.available} on sale`;
 }
 
-// Today and yesterday by name; anything older by its date.
+// Every day carries its date, today included: a list read a week later says
+// when each order was taken without any counting back.
 function dayName(key) {
   const date = new Date(key);
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
-  if (key === today) return 'Today';
-  if (key === yesterday) return 'Yesterday';
-  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const month = date.toLocaleDateString(undefined, { month: 'long' });
+  const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });
+  return `${month}, ${weekday} ${date.getDate()}`;
 }
 
 // Inside a day the date is already on the heading, so the row carries the time.
@@ -421,6 +473,25 @@ el('orderList').addEventListener('change', async (e) => {
     row.classList.toggle('done', !fulfilled);
     say(err.message, true);
   }
+});
+
+// Removing an order: a test run of your own, or one rung up twice. It is asked
+// for first, because the record cannot be brought back.
+el('orderList').addEventListener('click', async (event) => {
+  const button = event.target.closest('button[data-drop]');
+  if (!button) return;
+
+  const number = button.dataset.number;
+  if (!confirm(`Delete order #${number}? This cannot be undone.`)) return;
+
+  try {
+    const res = await fetch('/api/orders/' + encodeURIComponent(button.dataset.drop), {
+      method: 'DELETE', headers: auth()
+    });
+    if (!res.ok) throw new Error('Could not delete that order.');
+    await load();
+    say(`Order #${number} deleted`);
+  } catch (err) { say(err.message, true); }
 });
 
 /* ---------- stock ---------- */

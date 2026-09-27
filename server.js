@@ -815,10 +815,29 @@ app.patch('/api/orders/:id', staffOnly, async (req, res) => {
       await writeJson(ORDERS_FILE, orders);
     });
 
+    announce();
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+// Taking an order off the list: a test run, or a duplicate. The record goes;
+// the stock it came off does not come back, since it was handed over or never
+// on the shelf to begin with. Put the count right in Menu and stock if it is.
+app.delete('/api/orders/:id', staffOnly, async (req, res) => {
+  let gone = false;
+  await exclusive(async () => {
+    const orders = await readJson(ORDERS_FILE, {});
+    if (!orders[req.params.id]) return;
+    delete orders[req.params.id];
+    gone = true;
+    await writeJson(ORDERS_FILE, orders);
+  });
+
+  if (!gone) return res.status(404).json({ error: 'No such order.' });
+  announce();
+  res.json({ ok: true });
 });
 
 // Backing out of the card form. The held stock goes back on the shelf at once

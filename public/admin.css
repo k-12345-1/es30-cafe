@@ -355,6 +355,9 @@
 /* ---------- handing orders over ---------- */
 
 .list li.order { align-items: center; gap: 12px; }
+.list li.order .list-main { flex: 1 1 auto; text-align: left; }
+.list li.order .list-right { display: flex; align-items: center; gap: 10px; text-align: right; }
+.order-when { line-height: 1.35; }
 
 .order-who { display: block; }
 
@@ -410,8 +413,18 @@
 
 /* ---------- break ---------- */
 
-.break-actions { display: flex; gap: 12px; align-items: center; justify-content: center; }
+/* Three controls that must fit a phone: they share the row when there is room
+   and stack full width when there is not. */
+.break-actions { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.break-actions .pay { flex: 1 1 auto; width: auto; padding: 13px 20px; font-size: 16px; letter-spacing: 0.04em; }
+.break-actions .ghost-pill { flex: 0 1 auto; }
 .break-left { font-size: 14px; opacity: 0.7; white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .break-actions { flex-direction: column; align-items: stretch; }
+  .break-actions .pay,
+  .break-actions .ghost-pill { width: 100%; }
+}
 
 .opens-row {
   display: flex;
