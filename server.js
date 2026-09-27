@@ -40,6 +40,7 @@ const DATA_DIR = process.env.DATA_DIR || __dirname;
 const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const SUPPLIES_FILE = path.join(DATA_DIR, 'supplies.json');
+const IDEAS_FILE = path.join(DATA_DIR, 'suggestions.json');
 const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 const BREAK_FILE = path.join(DATA_DIR, 'break.json');
@@ -718,6 +719,47 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
   }
 });
 
+/* ---------- what people wish we sold ----------
+   A line at the foot of the menu. Anyone can send one, so it is kept short,
+   rate limited, and held as plain text: the admin page escapes it on the way
+   back out. */
+
+const MAX_IDEAS = 500;
+
+app.post('/api/suggestions', limit('suggest', 8), async (req, res) => {
+  const idea = String(req.body?.idea ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if (idea.length < 2) return res.status(400).json({ error: 'Tell us what to stock.' });
+
+  await exclusive(async () => {
+    const list = await readJson(IDEAS_FILE, []);
+    const already = list.find((e) => e.idea.toLowerCase() === idea.toLowerCase());
+    if (already) {
+      // The same snack asked for twice is a stronger signal, not a second row.
+      already.votes = (already.votes || 1) + 1;
+      already.lastAt = Date.now();
+    } else {
+      list.push({ id: randomUUID(), idea, votes: 1, addedAt: Date.now(), lastAt: Date.now() });
+    }
+    // Oldest first out, so a flood cannot push the whole list off the end.
+    await writeJson(IDEAS_FILE, list.slice(-MAX_IDEAS));
+  });
+
+  announce();
+  res.json({ ok: true });
+});
+
+app.delete('/api/suggestions', staffOnly, async (req, res) => {
+  const id = String(req.query.id || '');
+  let left = 0;
+  await exclusive(async () => {
+    const list = await readJson(IDEAS_FILE, []);
+    const kept = id ? list.filter((e) => e.id !== id) : [];
+    left = kept.length;
+    await writeJson(IDEAS_FILE, kept);
+  });
+  res.json({ ok: true, left });
+});
+
 app.post('/api/subscribe', limit('subscribe', 8), async (req, res) => {
   await rememberEmail(req.body?.email);
   res.json({ ok: true });
@@ -1063,9 +1105,9 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
 
   const menu = await readMenu();
   const items = itemsOf(menu);
-  const [stock, orders, subscribers, brk, supplies] = await Promise.all([
+  const [stock, orders, subscribers, brk, supplies, ideas] = await Promise.all([
     readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, []),
-    readJson(BREAK_FILE, {}), readJson(SUPPLIES_FILE, [])
+    readJson(BREAK_FILE, {}), readJson(SUPPLIES_FILE, []), readJson(IDEAS_FILE, [])
   ]);
   const available = availability(items, stock, orders);
 
@@ -1147,7 +1189,11 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
         fulfilled: Boolean(o.fulfilled),
         lines: o.lines.map((l) => ({ name: l.name, qty: l.qty }))
       })),
-    subscribers: subscribers.slice().reverse()
+    subscribers: subscribers.slice().reverse(),
+    // Most asked for first, and the newest of those above the older ones.
+    suggestions: ideas
+      .slice()
+      .sort((a, b) => (b.votes || 1) - (a.votes || 1) || (b.lastAt || 0) - (a.lastAt || 0))
   });
 });
 

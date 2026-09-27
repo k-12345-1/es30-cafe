@@ -723,6 +723,24 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   opacity: 0.6;
 }
 
+/* The suggestion box shares the giveaway box's shape; it sits at the foot of
+   the menu rather than on the receipt. */
+.suggest { margin-top: 34px; }
+.suggest input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 15px;
+  margin: 0;
+}
+
+.suggest input[type="text"]:focus { outline: none; border-color: var(--ink); }
+
 /* Our own validation message, so the browser's grey bubble never appears. */
 .field-note {
   font-size: 13px;

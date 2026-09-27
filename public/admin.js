@@ -244,6 +244,8 @@ function render() {
         </span>
       </li>`).join('')}`).join('');
 
+  showIdeas();
+
   const n = data.subscribers.length;
   el('entriesNote').textContent = n ? `${n} ${n === 1 ? 'entry' : 'entries'}, newest first.` : 'No entries yet.';
   el('entryList').innerHTML = data.subscribers.map((entry) => `
@@ -671,6 +673,58 @@ el('copyBtn').addEventListener('click', async () => {
     window.prompt('Copy the addresses:', text);
   }
   setTimeout(() => { el('copyBtn').textContent = 'Copy all'; }, 1600);
+});
+
+/* ---------- what people asked us to stock ---------- */
+
+function showIdeas() {
+  const ideas = data.suggestions || [];
+  const asked = ideas.reduce((sum, e) => sum + (e.votes || 1), 0);
+
+  el('ideasNote').textContent = ideas.length
+    ? `${ideas.length} suggestion${ideas.length === 1 ? '' : 's'}, most asked for first. ` +
+      `${asked} ask${asked === 1 ? '' : 's'} in all.`
+    : 'No suggestions yet.';
+  el('clearIdeas').hidden = !ideas.length;
+
+  el('ideaList').innerHTML = ideas.map((e) => `
+    <li>
+      <span class="list-main">
+        <span>${esc(e.idea)}</span>
+        <span class="list-sub">${(e.votes || 1) > 1 ? `asked for ${e.votes} times &middot; ` : ''}${when(e.lastAt || e.addedAt)}</span>
+      </span>
+      <span class="list-right">
+        <button type="button" class="remove" data-idea="${e.id}"
+                aria-label="Remove ${esc(e.idea)}">&times;</button>
+      </span>
+    </li>`).join('');
+}
+
+async function dropIdeas(id) {
+  const res = await fetch('/api/suggestions' + (id ? '?id=' + encodeURIComponent(id) : ''), {
+    method: 'DELETE', headers: auth()
+  });
+  if (!res.ok) throw new Error('Could not remove that.');
+  await load();
+}
+
+el('ideaList').addEventListener('click', async (event) => {
+  const id = event.target.closest('[data-idea]')?.dataset.idea;
+  if (!id) return;
+  try {
+    await dropIdeas(id);
+    say('Suggestion removed');
+  } catch (err) { say(err.message, true); }
+});
+
+el('clearIdeas').addEventListener('click', async () => {
+  const n = data?.suggestions?.length || 0;
+  if (!n) return;
+  if (!confirm(`Delete all ${n} suggestion${n === 1 ? '' : 's'}? This cannot be undone.`)) return;
+  try {
+    await dropIdeas('');
+    say('Suggestions cleared');
+  } catch (err) { say(err.message, true); }
 });
 
 async function dropEntries(email) {

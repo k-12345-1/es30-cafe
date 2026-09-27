@@ -753,6 +753,24 @@ input[type="text"]:focus { outline: none; border-color: var(--ink); }
   opacity: 0.6;
 }
 
+/* The suggestion box shares the giveaway box's shape; it sits at the foot of
+   the menu rather than on the receipt. */
+.suggest { margin-top: 34px; }
+.suggest input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 15px;
+  margin: 0;
+}
+
+.suggest input[type="text"]:focus { outline: none; border-color: var(--ink); }
+
 /* Our own validation message, so the browser's grey bubble never appears. */
 .field-note {
   font-size: 13px;
@@ -1348,6 +1366,17 @@ body.shut .row-desc { opacity: 0.5; }
 
         <div id="menuBody"></div>
 
+        <!-- What we do not stock yet. Anyone can say, nobody has to sign in. -->
+        <form class="signup suggest" id="suggestForm" novalidate>
+          <label class="signup-line" for="suggestion">Don't see a snack or drink you want? Suggest one here.</label>
+          <div class="signup-row">
+            <input type="text" id="suggestion" name="suggestion" maxlength="120"
+                   autocomplete="off" placeholder="Arizona Green Tea">
+            <button type="submit" class="signup-go" id="suggestGo" data-armed="false">Send</button>
+          </div>
+          <p class="field-note" id="suggestNote"></p>
+        </form>
+
         <p class="footnote" id="footnote" hidden></p>
 
         <footer class="foot">
@@ -1841,6 +1870,48 @@ function renderSite(site) {
   el('footnote').hidden = !site.footnote;
   if (site.footnote) el('footnote').textContent = `* ${site.footnote}`;
 }
+
+/* ---------- suggesting something we do not stock ----------
+   The same shape as the giveaway box on the receipt: the button stays quiet
+   until there is something to send, and the form thanks and closes rather than
+   inviting the same idea five times. */
+
+(() => {
+  const form = el('suggestForm');
+  if (!form) return;
+
+  const field = el('suggestion');
+  const go = el('suggestGo');
+  const note = el('suggestNote');
+
+  const arm = () => go.dataset.armed = String(field.value.trim().length >= 2);
+  field.addEventListener('input', arm);
+  arm();
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const idea = field.value.trim();
+    note.textContent = '';
+
+    if (idea.length < 2) {
+      note.textContent = 'Tell us what to stock.';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'That did not send.');
+      form.innerHTML =
+        '<p class="signup-line">Thanks! We will see what we can do.</p>';
+    } catch (err) {
+      note.textContent = err.message;
+    }
+  });
+})();
 
 /* ---------- cart ---------- */
 

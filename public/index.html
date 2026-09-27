@@ -66,6 +66,17 @@
 
         <div id="menuBody"></div>
 
+        <!-- What we do not stock yet. Anyone can say, nobody has to sign in. -->
+        <form class="signup suggest" id="suggestForm" novalidate>
+          <label class="signup-line" for="suggestion">Don't see a snack or drink you want? Suggest one here.</label>
+          <div class="signup-row">
+            <input type="text" id="suggestion" name="suggestion" maxlength="120"
+                   autocomplete="off" placeholder="Arizona Green Tea">
+            <button type="submit" class="signup-go" id="suggestGo" data-armed="false">Send</button>
+          </div>
+          <p class="field-note" id="suggestNote"></p>
+        </form>
+
         <p class="footnote" id="footnote" hidden></p>
 
         <footer class="foot">

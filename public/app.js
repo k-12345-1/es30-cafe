@@ -430,6 +430,48 @@ function renderSite(site) {
   if (site.footnote) el('footnote').textContent = `* ${site.footnote}`;
 }
 
+/* ---------- suggesting something we do not stock ----------
+   The same shape as the giveaway box on the receipt: the button stays quiet
+   until there is something to send, and the form thanks and closes rather than
+   inviting the same idea five times. */
+
+(() => {
+  const form = el('suggestForm');
+  if (!form) return;
+
+  const field = el('suggestion');
+  const go = el('suggestGo');
+  const note = el('suggestNote');
+
+  const arm = () => go.dataset.armed = String(field.value.trim().length >= 2);
+  field.addEventListener('input', arm);
+  arm();
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const idea = field.value.trim();
+    note.textContent = '';
+
+    if (idea.length < 2) {
+      note.textContent = 'Tell us what to stock.';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'That did not send.');
+      form.innerHTML =
+        '<p class="signup-line">Thanks! We will see what we can do.</p>';
+    } catch (err) {
+      note.textContent = err.message;
+    }
+  });
+})();
+
 /* ---------- cart ---------- */
 
 function setQty(id, qty) {
