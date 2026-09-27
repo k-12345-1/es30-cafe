@@ -477,8 +477,13 @@ function weekStart(day = localDay()) {
 
 function nextOrderNumber(orders) {
   const today = localDay();
-  const todays = Object.values(orders).filter((o) => o.day === today);
-  return { number: 1 + todays.length, day: today };
+  // One past the highest number given out today, not a count of the rows: an
+  // order struck off the list must not hand its number to the next customer,
+  // or two people end up holding the same ticket.
+  const highest = Object.values(orders)
+    .filter((o) => o.day === today && Number.isFinite(o.orderNumber))
+    .reduce((top, o) => Math.max(top, o.orderNumber), 0);
+  return { number: highest + 1, day: today };
 }
 
 /* ---------- cart pricing ----------
