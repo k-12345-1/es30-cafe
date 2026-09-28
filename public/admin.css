@@ -409,7 +409,8 @@
 
 /* An address or an idea carries its own remove button, level with the date. */
 #entryList .list-right,
-#ideaList .list-right { display: flex; align-items: center; gap: 10px; }
+#ideaList .list-right,
+#maxList .list-right { display: flex; align-items: center; gap: 10px; }
 
 .order-who { display: block; }
 

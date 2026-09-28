@@ -1355,21 +1355,52 @@ body.shut .row-desc { opacity: 0.5; }
   letter-spacing: 0.02em;
 }
 
-.max-close {
+.max-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.max-go {
   margin-top: 20px;
-  padding: 11px 30px;
+  padding: 11px 18px;
   border: 2.5px solid var(--ink);
   border-radius: 999px;
   background: var(--ink);
   color: var(--cream);
   font-family: var(--hand);
-  font-size: 16px;
+  font-size: 15px;
   letter-spacing: 0.04em;
   cursor: pointer;
   transition: background 170ms ease, color 170ms ease;
 }
 
-.max-close:hover { background: transparent; color: var(--ink); }
+.max-go:hover:not(:disabled) { background: transparent; color: var(--ink); }
+.max-go:disabled { opacity: 0.6; cursor: default; }
+
+.max-note {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.max-close {
+  margin-top: 20px;
+  padding: 11px 18px;
+  border: 2.5px solid var(--hair);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 170ms ease, color 170ms ease;
+}
+
+.max-close:hover { border-color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .max-wrap, .max-card { transition: none; }

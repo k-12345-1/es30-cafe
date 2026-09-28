@@ -34,7 +34,11 @@
       <li>1 FREE pack of Oreos</li>
     </ul>
     <p class="max-every">every class</p>
-    <button type="button" class="max-close" id="maxClose">Close</button>
+    <div class="max-actions">
+      <button type="button" class="max-go" id="maxGo">Sign me up</button>
+      <button type="button" class="max-close" id="maxClose">No thanks</button>
+    </div>
+    <p class="max-note" id="maxNote"></p>
   </div>
 </div>
 
@@ -170,6 +174,30 @@ function hideMax() {
 }
 
 document.getElementById('maxClose').addEventListener('click', hideMax);
+
+// Signing up puts the name from this order on the staff's list. The $50 is
+// taken at the counter, so nothing is charged here.
+document.getElementById('maxGo').addEventListener('click', async () => {
+  const button = document.getElementById('maxGo');
+  const note = document.getElementById('maxNote');
+  button.disabled = true;
+  note.textContent = '';
+
+  try {
+    const res = await fetch('/api/waiter-max', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: new URLSearchParams(location.search).get('session_id') })
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'That did not send.');
+    document.querySelector('.max-actions').remove();
+    note.textContent = 'You are on the list. Pay $50 at the counter and it starts today.';
+    setTimeout(hideMax, 3_600);
+  } catch (err) {
+    button.disabled = false;
+    note.textContent = err.message;
+  }
+});
 document.getElementById('maxOffer').addEventListener('click', (event) => {
   if (event.target.id === 'maxOffer') hideMax();     // the dimmed ground around it
 });

@@ -41,6 +41,7 @@ const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const SUPPLIES_FILE = path.join(DATA_DIR, 'supplies.json');
 const IDEAS_FILE = path.join(DATA_DIR, 'suggestions.json');
+const MAX_FILE = path.join(DATA_DIR, 'waiter-max.json');
 const STOCK_FILE = path.join(DATA_DIR, 'stock.json');
 const EMAILS_FILE = path.join(DATA_DIR, 'subscribers.json');
 const BREAK_FILE = path.join(DATA_DIR, 'break.json');
@@ -719,6 +720,52 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
   }
 });
 
+/* ---------- WaiTER MAX ----------
+   The card on the receipt. Signing up is a name on a list, not a payment: the
+   $50 is taken at the counter, so nothing here touches Stripe. The name comes
+   from the order rather than the browser, so nobody can put someone else on
+   the list. */
+
+app.post('/api/waiter-max', limit('max', 10), async (req, res) => {
+  const sessionId = String(req.body?.sessionId || '');
+  const orders = await readJson(ORDERS_FILE, {});
+  const order = orders[sessionId];
+
+  // Only someone holding a real receipt can sign up from it.
+  if (!order || !order.paid || !order.orderNumber) {
+    return res.status(404).json({ error: 'We could not find that order.' });
+  }
+
+  await exclusive(async () => {
+    const list = await readJson(MAX_FILE, []);
+    if (list.some((e) => e.session === sessionId)) return;    // one per receipt
+    list.push({
+      id: randomUUID(),
+      session: sessionId,
+      name: order.name,
+      orderNumber: order.orderNumber,
+      day: order.day,
+      addedAt: Date.now()
+    });
+    await writeJson(MAX_FILE, list);
+  });
+
+  announce();
+  res.json({ ok: true });
+});
+
+app.delete('/api/waiter-max', staffOnly, async (req, res) => {
+  const id = String(req.query.id || '');
+  let left = 0;
+  await exclusive(async () => {
+    const list = await readJson(MAX_FILE, []);
+    const kept = id ? list.filter((e) => e.id !== id) : [];
+    left = kept.length;
+    await writeJson(MAX_FILE, kept);
+  });
+  res.json({ ok: true, left });
+});
+
 /* ---------- what people wish we sold ----------
    A line at the foot of the menu. Anyone can send one, so it is kept short,
    rate limited, and held as plain text: the admin page escapes it on the way
@@ -1105,9 +1152,10 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
 
   const menu = await readMenu();
   const items = itemsOf(menu);
-  const [stock, orders, subscribers, brk, supplies, ideas] = await Promise.all([
+  const [stock, orders, subscribers, brk, supplies, ideas, maxList] = await Promise.all([
     readStock(items), readJson(ORDERS_FILE, {}), readJson(EMAILS_FILE, []),
-    readJson(BREAK_FILE, {}), readJson(SUPPLIES_FILE, []), readJson(IDEAS_FILE, [])
+    readJson(BREAK_FILE, {}), readJson(SUPPLIES_FILE, []), readJson(IDEAS_FILE, []),
+    readJson(MAX_FILE, [])
   ]);
   const available = availability(items, stock, orders);
 
@@ -1191,6 +1239,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
         lines: o.lines.map((l) => ({ name: l.name, qty: l.qty }))
       })),
     subscribers: subscribers.slice().reverse(),
+    waiterMax: maxList.slice().reverse(),
     // Most asked for first, and the newest of those above the older ones.
     suggestions: ideas
       .slice()

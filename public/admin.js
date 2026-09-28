@@ -254,6 +254,7 @@ function render() {
         </span>
       </li>`).join('')}`).join('');
 
+  showMax();
   showIdeas();
 
   const n = data.subscribers.length;
@@ -709,6 +710,59 @@ el('copyBtn').addEventListener('click', async () => {
     window.prompt('Copy the addresses:', text);
   }
   setTimeout(() => { el('copyBtn').textContent = 'Copy all'; }, 1600);
+});
+
+/* ---------- who wants WaiTER MAX ----------
+   Signing up is a name on a list; the $50 is taken at the counter, so this is
+   who to collect from and hand the free bottle and pack to. */
+
+function showMax() {
+  const list = data.waiterMax || [];
+
+  el('maxNote').textContent = list.length
+    ? `${list.length} sign-up${list.length === 1 ? '' : 's'}, newest first. ` +
+      `$${list.length * 50} to collect.`
+    : 'Nobody has signed up yet.';
+  el('clearMax').hidden = !list.length;
+
+  el('maxList').innerHTML = list.map((e) => `
+    <li>
+      <span class="list-main">
+        <span>${esc(e.name)}</span>
+        <span class="list-sub">from order #${e.orderNumber} &middot; ${when(e.addedAt)}</span>
+      </span>
+      <span class="list-right">
+        <button type="button" class="remove" data-max="${e.id}"
+                aria-label="Remove ${esc(e.name)}">&times;</button>
+      </span>
+    </li>`).join('');
+}
+
+async function dropMax(id) {
+  const res = await fetch('/api/waiter-max' + (id ? '?id=' + encodeURIComponent(id) : ''), {
+    method: 'DELETE', headers: auth()
+  });
+  if (!res.ok) throw new Error('Could not remove that.');
+  await load();
+}
+
+el('maxList').addEventListener('click', async (event) => {
+  const id = event.target.closest('[data-max]')?.dataset.max;
+  if (!id) return;
+  try {
+    await dropMax(id);
+    say('Sign-up removed');
+  } catch (err) { say(err.message, true); }
+});
+
+el('clearMax').addEventListener('click', async () => {
+  const n = data?.waiterMax?.length || 0;
+  if (!n) return;
+  if (!confirm(`Delete all ${n} sign-up${n === 1 ? '' : 's'}? This cannot be undone.`)) return;
+  try {
+    await dropMax('');
+    say('Sign-ups cleared');
+  } catch (err) { say(err.message, true); }
 });
 
 /* ---------- what people asked us to stock ---------- */
