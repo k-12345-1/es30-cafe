@@ -23,6 +23,21 @@
   </div>
 </div>
 
+<!-- Comes up a few seconds after the receipt. -->
+<div class="max-wrap" id="maxOffer" hidden>
+  <div class="max-card" role="dialog" aria-modal="true" aria-labelledby="maxTitle">
+    <h2 class="max-title" id="maxTitle">WaiTER MAX</h2>
+    <p class="max-line">This is a one-time $50 payment for:</p>
+    <ul class="max-list">
+      <li>WaiTER MAX EXPRESS LANE</li>
+      <li>1 FREE bottle of WaiTER</li>
+      <li>1 FREE pack of Oreos</li>
+    </ul>
+    <p class="max-every">every class</p>
+    <button type="button" class="max-close" id="maxClose">Close</button>
+  </div>
+</div>
+
 <script>
 const esc = (str) => String(str).replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -122,7 +137,45 @@ function render(order) {
       '<p class="signup-line">Good luck! Check your email next Wednesday at 10am to see if you are the lucky winner!</p>';
   });
   document.title = `Order ${order.orderNumber} · ES30 Cafe`;
+  offerMax(order);
 }
+
+/* ---------- the WaiTER MAX card ----------
+   Shown a few seconds after the receipt has settled, so the order number is
+   read first, and only once per order however often the page is opened. */
+
+const MAX_DELAY_MS = 3_000;
+
+function offerMax(order) {
+  // Keyed by the order's own session, so next week's order number two still
+  // sees it, and a reload of this one does not.
+  const seen = 'es30.max.' + (new URLSearchParams(location.search).get('session_id') || order.orderNumber);
+  try { if (localStorage.getItem(seen)) return; } catch { /* private window */ }
+
+  setTimeout(() => {
+    const card = document.getElementById('maxOffer');
+    if (!card) return;
+    try { localStorage.setItem(seen, '1'); } catch { /* private window */ }
+
+    card.hidden = false;
+    requestAnimationFrame(() => card.classList.add('up'));
+    document.getElementById('maxClose').focus();
+  }, MAX_DELAY_MS);
+}
+
+function hideMax() {
+  const card = document.getElementById('maxOffer');
+  card.classList.remove('up');
+  setTimeout(() => { card.hidden = true; }, 220);
+}
+
+document.getElementById('maxClose').addEventListener('click', hideMax);
+document.getElementById('maxOffer').addEventListener('click', (event) => {
+  if (event.target.id === 'maxOffer') hideMax();     // the dimmed ground around it
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !document.getElementById('maxOffer').hidden) hideMax();
+});
 
 load();
 </script>
