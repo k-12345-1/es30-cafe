@@ -115,7 +115,11 @@ function cafeState(brk = {}, at = Date.now()) {
   // more recent than the scheduled one takes its place, so everything below
   // reads the same whether the cycle began by clock or by button.
   const byHand = brk.countdownAt || null;
-  const manual = Boolean(byHand && byHand <= at && byHand > scheduled.countdownFrom);
+  // A hand-started countdown that has since been stopped is spent: the week
+  // goes back to the scheduled Wednesday rather than staying anchored to the
+  // day someone pressed the button.
+  const spent = Boolean(byHand && closedAt && closedAt >= byHand);
+  const manual = Boolean(byHand && !spent && byHand <= at && byHand > scheduled.countdownFrom);
   const countdownFrom = manual ? byHand : scheduled.countdownFrom;
   const opensAt = manual
     ? byHand + OPENS_LEAD_MINUTES * 60_000
