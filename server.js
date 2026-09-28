@@ -1379,7 +1379,64 @@ app.delete('/api/items/:id', staffOnly, async (req, res) => {
   }
 });
 
+/* ---------- one-off corrections to the stored menu ----------
+   The menu lives on the server's disk, so a change of wording in the seed
+   never reaches a cafe that is already running. These do, once each: every fix
+   records its name when it runs and is skipped from then on, so a later edit
+   from the staff page is never undone by the next deploy. */
+
+const FIXES_FILE = path.join(DATA_DIR, 'menu-fixes.json');
+
+const MENU_FIXES = [
+  {
+    name: 'waiter-line-2026-09-27',
+    apply(menu) {
+      const waiter = itemsOf(menu).waiter;
+      if (!waiter) return false;
+      waiter.desc = 'A bottle of water with AI. Additionally, every WaiTER purchase '
+        + 'goes toward supporting sustainable water usage for AI.';
+      return true;
+    }
+  },
+  {
+    name: 'diet-coke-above-waiter-2026-09-27',
+    apply(menu) {
+      for (const section of menu) {
+        for (const group of section.groups) {
+          const coke = group.items.findIndex((i) => /diet coke/i.test(i.name));
+          const waiter = group.items.findIndex((i) => i.id === 'waiter');
+          if (coke < 0 || waiter < 0 || coke < waiter) continue;
+          const [moved] = group.items.splice(coke, 1);
+          group.items.splice(waiter, 0, moved);
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+];
+
+async function applyMenuFixes() {
+  await exclusive(async () => {
+    const done = await readJson(FIXES_FILE, []);
+    const menu = await readMenu();
+    const ran = [];
+
+    for (const fix of MENU_FIXES) {
+      if (done.includes(fix.name)) continue;
+      if (fix.apply(menu)) ran.push(fix.name);
+      else done.push(fix.name);        // nothing to change here; do not keep trying
+    }
+
+    if (!ran.length && done.length === (await readJson(FIXES_FILE, [])).length) return;
+    await writeJson(MENU_FILE, menu);
+    await writeJson(FIXES_FILE, [...done, ...ran]);
+    if (ran.length) console.log('menu corrections applied:', ran.join(', '));
+  });
+}
+
 await fs.mkdir(DATA_DIR, { recursive: true }).catch(() => {});
+await applyMenuFixes().catch((err) => console.warn('menu corrections skipped:', err.message));
 
 app.listen(PORT, () => {
   console.log(`ES30 Cafe running at ${PUBLIC_URL}`);
