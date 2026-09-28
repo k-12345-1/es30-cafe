@@ -1379,6 +1379,14 @@ body.shut .row-desc { opacity: 0.5; }
 .max-go:hover:not(:disabled) { background: transparent; color: var(--cream); }
 .max-go:disabled { opacity: 0.6; cursor: default; }
 
+/* The punchline under the list: the perks are not once, they are weekly. */
+.max-every {
+  margin: 16px 0 0;
+  font-size: 19px;
+  -webkit-text-stroke: 0.6px var(--cream);
+  letter-spacing: 0.02em;
+}
+
 /* The name on the pass, asked for before any money is. */
 .max-form {
   display: grid;
