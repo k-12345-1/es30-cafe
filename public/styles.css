@@ -1286,6 +1286,9 @@ body.shut .row-desc { opacity: 0.5; }
   z-index: 90;
   display: grid;
   place-items: center;
+  /* Stripe's card form is taller than the offer it replaces, so the card can
+     scroll rather than run off the bottom of a phone. */
+  overflow-y: auto;
   padding: 24px;
   background: rgba(47, 106, 121, 0.28);
   opacity: 0;
@@ -1297,6 +1300,8 @@ body.shut .row-desc { opacity: 0.5; }
 
 .max-card {
   width: min(100%, 380px);
+  max-height: calc(100svh - 48px);
+  overflow-y: auto;
   background: var(--cream);
   border: 3px solid var(--ink);
   border-radius: 22px;
@@ -1371,6 +1376,36 @@ body.shut .row-desc { opacity: 0.5; }
 
 .max-go:hover:not(:disabled) { background: transparent; color: var(--ink); }
 .max-go:disabled { opacity: 0.6; cursor: default; }
+
+/* The name on the pass, asked for before any money is. */
+.max-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  text-align: left;
+}
+
+#maxForm[hidden] { display: none; }
+
+.max-label { font-size: 14px; opacity: 0.8; }
+
+.max-form input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2.5px solid var(--hair);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 16px;
+}
+
+.max-form input:focus { outline: none; border-color: var(--ink); }
+.max-form .max-go, .max-form .max-close { margin-top: 4px; }
+
+/* Stripe draws its own form in here. */
+.max-pay { margin-top: 16px; }
+#maxPayMount[hidden] { display: none; }
 
 .max-note {
   margin: 14px 0 0;

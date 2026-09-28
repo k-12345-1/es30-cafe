@@ -726,33 +726,121 @@ app.post('/api/checkout', limit('checkout', 12), async (req, res) => {
    from the order rather than the browser, so nobody can put someone else on
    the list. */
 
-app.post('/api/waiter-max', limit('max', 10), async (req, res) => {
-  const sessionId = String(req.body?.sessionId || '');
-  const orders = await readJson(ORDERS_FILE, {});
-  const order = orders[sessionId];
+const MAX_PRICE = 5000;                  // $50, the one-off
+const MAX_LABEL = 'WaiTER MAX';
 
-  // Only someone holding a real receipt can sign up from it.
-  if (!order || !order.paid || !order.orderNumber) {
-    return res.status(404).json({ error: 'We could not find that order.' });
+// Starting a sign-up: the same card form the menu uses, for the pass rather
+// than a snack. Nobody is on the list until Stripe says the $50 was paid.
+app.post('/api/waiter-max/checkout', limit('max', 10), async (req, res) => {
+  const name = String(req.body?.name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!/^[^\s]+(\s+[^\s]+)+$/.test(name)) {
+    return res.status(400).json({ error: 'Please enter your first and last name.' });
   }
 
+  // The receipt it was started from, when there is one: it puts the order
+  // number beside the name on the staff's list.
+  const from = String(req.body?.sessionId || '');
+  const orders = await readJson(ORDERS_FILE, {});
+  const orderNumber = orders[from]?.orderNumber || null;
+
+  try {
+    if (DEMO) {
+      const key = `demo_max_${randomUUID()}`;
+      await recordMax(key, { name, orderNumber, paidAt: Date.now() });
+      return res.json({ demo: true, sessionId: key });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: CURRENCY,
+          unit_amount: MAX_PRICE,
+          product_data: { name: MAX_LABEL }
+        }
+      }],
+      metadata: { customer_name: name, kind: 'waiter-max' },
+      expires_at: Math.floor(Date.now() / 1000) + RESERVE_MINUTES * 60,
+      ...(PUBLISHABLE
+        ? {
+            ui_mode: 'embedded',
+            return_url: `${PUBLIC_URL}/success.html?max_session_id={CHECKOUT_SESSION_ID}`
+          }
+        : {
+            success_url: `${PUBLIC_URL}/success.html?max_session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${PUBLIC_URL}/`
+          })
+    });
+
+    // Written now so a customer who pays and closes the tab is still found by
+    // the sweep below; it counts for nothing until paidAt is set.
+    await recordMax(session.id, { name, orderNumber, paidAt: null });
+
+    res.json(PUBLISHABLE
+      ? { clientSecret: session.client_secret, sessionId: session.id, publishableKey: PUBLISHABLE }
+      : { url: session.url });
+  } catch (err) {
+    console.error('WaiTER MAX checkout failed:', err);
+    res.status(400).json({ error: 'Could not open the payment form.' });
+  }
+});
+
+async function recordMax(session, fields) {
   await exclusive(async () => {
     const list = await readJson(MAX_FILE, []);
-    if (list.some((e) => e.session === sessionId)) return;    // one per receipt
-    list.push({
-      id: randomUUID(),
-      session: sessionId,
-      name: order.name,
-      orderNumber: order.orderNumber,
-      day: order.day,
-      addedAt: Date.now()
-    });
+    const already = list.find((e) => e.session === session);
+    if (already) Object.assign(already, fields);
+    else list.push({ id: randomUUID(), session, addedAt: Date.now(), ...fields });
     await writeJson(MAX_FILE, list);
   });
+}
 
-  announce();
-  res.json({ ok: true });
+// Coming back from the card form. Stripe is asked, never the browser.
+app.get('/api/waiter-max', async (req, res) => {
+  const session = String(req.query.session_id || '');
+  const list = await readJson(MAX_FILE, []);
+  const row = list.find((e) => e.session === session);
+  if (!row) return res.status(404).json({ error: 'We could not find that sign-up.' });
+
+  if (!row.paidAt) {
+    if (DEMO) return res.status(404).json({ error: 'We could not find that sign-up.' });
+    const paid = await stripe.checkout.sessions.retrieve(session);
+    if (paid.payment_status !== 'paid') {
+      return res.status(402).json({ error: 'Payment is not complete yet.' });
+    }
+    await recordMax(session, { paidAt: Date.now() });
+    announce();
+  }
+
+  res.json({ ok: true, name: row.name, amount: MAX_PRICE, currency: CURRENCY });
 });
+
+// Anyone who paid and never came back, and anything that was never paid for.
+async function sweepMax() {
+  if (DEMO) return;
+  const list = await readJson(MAX_FILE, []);
+  const waiting = list.filter((e) => !e.paidAt);
+  if (!waiting.length) return;
+
+  for (const row of waiting) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(row.session);
+      if (session.payment_status === 'paid') {
+        await recordMax(row.session, { paidAt: Date.now() });
+        announce();
+      } else if (session.status === 'expired' || Date.now() - row.addedAt > 60 * 60_000) {
+        await exclusive(async () => {
+          const current = await readJson(MAX_FILE, []);
+          await writeJson(MAX_FILE, current.filter((e) => e.session !== row.session));
+        });
+      }
+    } catch (err) {
+      console.warn('could not check a WaiTER MAX session', err.message);
+    }
+  }
+}
 
 app.delete('/api/waiter-max', staffOnly, async (req, res) => {
   const id = String(req.query.id || '');
@@ -1094,7 +1182,10 @@ async function reconcile() {
 
 // Often enough that a stray payment surfaces while the customer is still at the
 // counter, rarely enough to be no load at all.
-if (!DEMO) setInterval(() => { reconcile().catch(() => {}); }, 90_000);
+if (!DEMO) setInterval(() => {
+  reconcile().catch(() => {});
+  sweepMax().catch(() => {});
+}, 90_000);
 
 function publicOrder(o) {
   return {
@@ -1149,6 +1240,7 @@ function staffOnly(req, res, next) {
 app.get('/api/admin', staffOnly, async (_req, res) => {
   // Cheap, and it means the list is right the moment it is opened.
   await reconcile().catch(() => {});
+  await sweepMax().catch(() => {});
 
   const menu = await readMenu();
   const items = itemsOf(menu);
@@ -1239,7 +1331,8 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
         lines: o.lines.map((l) => ({ name: l.name, qty: l.qty }))
       })),
     subscribers: subscribers.slice().reverse(),
-    waiterMax: maxList.slice().reverse(),
+    waiterMax: maxList.filter((e) => e.paidAt).slice().reverse(),
+    waiterMaxPrice: MAX_PRICE,
     // Most asked for first, and the newest of those above the older ones.
     suggestions: ideas
       .slice()

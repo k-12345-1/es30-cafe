@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 
@@ -37,6 +38,17 @@
       <button type="button" class="max-go" id="maxGo">Sign me up</button>
       <button type="button" class="max-close" id="maxClose">No thanks</button>
     </div>
+
+    <!-- Revealed by Sign me up: the name on the pass, then Stripe's own form. -->
+    <form class="max-form" id="maxForm" hidden novalidate>
+      <label class="max-label" for="maxName">Name on the pass</label>
+      <input type="text" id="maxName" maxlength="60" autocomplete="name"
+             placeholder="First and Last Name">
+      <button type="submit" class="max-go" id="maxPay">Pay $50</button>
+      <button type="button" class="max-close" id="maxBack">Back</button>
+    </form>
+
+    <div class="max-pay" id="maxPayMount" hidden></div>
     <p class="max-note" id="maxNote"></p>
   </div>
 </div>
@@ -64,7 +76,17 @@ const money = (cents, cur) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur.toUpperCase() }).format(cents / 100);
 
 async function load() {
-  const sessionId = new URLSearchParams(location.search).get('session_id');
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('session_id');
+
+  // Coming back from paying for a pass rather than from an order: the card
+  // above says everything, so the page behind it stays quiet.
+  if (!sessionId && params.get('max_session_id')) {
+    document.getElementById('ticket').innerHTML =
+      '<a class="back" href="/">back to the menu</a>';
+    return;
+  }
+
   if (!sessionId) return fail('no order found');
 
   // Stripe can redirect a moment before the payment is marked paid, so retry briefly.
@@ -174,29 +196,105 @@ function hideMax() {
 
 document.getElementById('maxClose').addEventListener('click', hideMax);
 
-// Signing up puts the name from this order on the staff's list. The $50 is
-// taken at the counter, so nothing is charged here.
-document.getElementById('maxGo').addEventListener('click', async () => {
-  const button = document.getElementById('maxGo');
+/* Signing up is a payment: the name goes on the pass, then Stripe's own card
+   form opens inside this card. Nobody reaches the staff's list without it. */
+
+let maxWidget;
+
+document.getElementById('maxGo').addEventListener('click', () => {
+  document.querySelector('.max-actions').hidden = true;
+  document.getElementById('maxForm').hidden = false;
+  document.getElementById('maxName').focus();
+});
+
+document.getElementById('maxBack').addEventListener('click', () => {
+  document.getElementById('maxForm').hidden = true;
+  document.querySelector('.max-actions').hidden = false;
+  document.getElementById('maxNote').textContent = '';
+});
+
+document.getElementById('maxForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const name = document.getElementById('maxName').value.replace(/\s+/g, ' ').trim();
+  const pay = document.getElementById('maxPay');
   const note = document.getElementById('maxNote');
-  button.disabled = true;
   note.textContent = '';
 
+  // Both halves of a name, checked here so the wait for Stripe is never wasted.
+  if (!/^[^\s]+(\s+[^\s]+)+$/.test(name)) {
+    note.textContent = 'Please enter your first and last name.';
+    return;
+  }
+
+  pay.disabled = true;
+  pay.textContent = 'Opening payment';
+
   try {
-    const res = await fetch('/api/waiter-max', {
+    const res = await fetch('/api/waiter-max/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: new URLSearchParams(location.search).get('session_id') })
+      body: JSON.stringify({ name, sessionId: new URLSearchParams(location.search).get('session_id') })
     });
-    if (!res.ok) throw new Error((await res.json()).error || 'That did not send.');
-    document.querySelector('.max-actions').remove();
-    note.textContent = 'You are on the list. Pay $50 at the counter and it starts today.';
-    setTimeout(hideMax, 3_600);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not open the payment form.');
+
+    if (data.demo) return showMaxDone(name);
+    if (data.url) return (window.location.href = data.url);
+
+    document.getElementById('maxForm').hidden = true;
+    document.getElementById('maxPayMount').hidden = false;
+    const stripe = Stripe(data.publishableKey);
+    maxWidget = await stripe.initEmbeddedCheckout({ clientSecret: data.clientSecret });
+    maxWidget.mount('#maxPayMount');
   } catch (err) {
-    button.disabled = false;
+    pay.disabled = false;
+    pay.textContent = 'Pay $50';
     note.textContent = err.message;
   }
 });
+
+function showMaxDone(name) {
+  const card = document.querySelector('.max-card');
+  card.innerHTML = `
+    <h2 class="max-title">WaiTER MAX</h2>
+    <p class="max-line">Paid. ${esc(name)} is on the list.</p>
+    <p class="max-note">Show this screen at the counter for your express lane,
+       a bottle of WaiTER and a pack of Oreos, every class.</p>
+    <button type="button" class="max-close" id="maxDone">Close</button>`;
+  document.getElementById('maxDone').addEventListener('click', hideMax);
+}
+
+/* Coming back from Stripe. The page checks with the server, which checks with
+   Stripe, before saying a word about being signed up. */
+async function settleMax() {
+  const session = new URLSearchParams(location.search).get('max_session_id');
+  if (!session) return false;
+
+  const card = document.getElementById('maxOffer');
+  card.hidden = false;
+  card.classList.add('up');
+  document.querySelector('.max-card').innerHTML =
+    '<h2 class="max-title">WaiTER MAX</h2><p class="max-line">Confirming your payment…</p>';
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const res = await fetch('/api/waiter-max?session_id=' + encodeURIComponent(session));
+    if (res.ok) {
+      const paid = await res.json();
+      showMaxDone(paid.name);
+      return true;
+    }
+    if (res.status !== 402) break;
+    await new Promise((r) => setTimeout(r, 900));
+  }
+
+  document.querySelector('.max-card').innerHTML =
+    `<h2 class="max-title">WaiTER MAX</h2>
+     <p class="max-line">We could not confirm that payment. Nothing has been charged twice;
+        ask at the counter and they can check.</p>
+     <button type="button" class="max-close" id="maxDone">Close</button>`;
+  document.getElementById('maxDone').addEventListener('click', hideMax);
+  return true;
+}
 document.getElementById('maxOffer').addEventListener('click', (event) => {
   if (event.target.id === 'maxOffer') hideMax();     // the dimmed ground around it
 });
@@ -204,6 +302,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !document.getElementById('maxOffer').hidden) hideMax();
 });
 
+settleMax();
 load();
 </script>
 </body>
