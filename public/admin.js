@@ -582,7 +582,11 @@ el('stockForm').addEventListener('submit', async (e) => {
     const was = data.items.find((i) => i.id === id);
     if (!was) continue;
 
-    counts[id] = Number(row.querySelector('.stock-input-qty').value);
+    // Only counts you actually changed are sent. Sending every box would undo
+    // any sale made while this page was open: the shelf would go back up to
+    // the number shown here before the order came in.
+    const qty = Number(row.querySelector('.stock-input-qty').value);
+    if (Number.isFinite(qty) && qty !== was.onHand) counts[id] = qty;
 
     const name = row.querySelector('.stock-input-name').value.trim();
     const price = Number(row.querySelector('.stock-input-price').value);
@@ -608,15 +612,17 @@ el('stockForm').addEventListener('submit', async (e) => {
       if (!res.ok) throw new Error(body.error || 'Could not save that item.');
     }
 
-    const res = await fetch('/api/stock', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...auth() },
-      body: JSON.stringify({ counts })
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || 'Could not save.');
+    if (Object.keys(counts).length) {
+      const res = await fetch('/api/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth() },
+        body: JSON.stringify({ counts })
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not save.');
+    }
     await load();
-    say('Saved');
+    say(edits.length || Object.keys(counts).length ? 'Saved' : 'Nothing to save');
   } catch (err) {
     say(err.message, true);
   } finally {
