@@ -422,10 +422,10 @@ function showBreak() {
     ? 'Restart the hour and 15 minutes'
     : 'Start the hour and 15 minutes';
 
-  // Once the till is shut there is nothing left to count, even if the ten
-  // minutes had time on them when stop was pressed.
+  // Stopped: the clock is off the menu, though the cafe is still taking
+  // orders as it always is.
   if (data.stopped) {
-    left.textContent = 'closed';
+    left.textContent = 'timer stopped';
     start.textContent = `Start ${data.breakMinutes} minutes`;
     stop.hidden = true;
     return;
@@ -433,12 +433,12 @@ function showBreak() {
 
   if (!endsAt) {
     start.textContent = `Start ${data.breakMinutes} minutes`;
-    stop.textContent = 'Stop taking orders';
-    stop.hidden = !data.ordersOpen;         // the till can be shut before the break
+    stop.textContent = 'Stop the timer';
+    stop.hidden = !data.clock?.show;        // nothing to stop without a clock
     const target = data.clock?.mode === 'opening' ? data.clock.target : null;
 
     if (!target) {
-      left.textContent = data.ordersOpen ? 'taking orders' : 'not running';
+      left.textContent = data.clock?.show ? 'waiting on the break' : 'not running';
       return;
     }
 
@@ -457,15 +457,14 @@ function showBreak() {
     left.textContent = `${mss(ms)} left`;
     if (ms === 0) {
       clearInterval(breakTimer);
-      left.textContent = data.ordersOpen ? 'ended: still serving' : 'closed';
-      stop.textContent = 'Stop taking orders';
-      stop.hidden = !data.ordersOpen;
+      left.textContent = 'ended';
+      stop.textContent = 'Stop the timer';
       start.textContent = `Start ${data.breakMinutes} minutes`;
     }
   };
 
   stop.hidden = false;
-  stop.textContent = 'Stop taking orders';
+  stop.textContent = 'Stop the timer';
   start.textContent = 'Restart';
   paint();
   breakTimer = setInterval(paint, 1000);
@@ -496,9 +495,9 @@ el('startBreak').addEventListener('click', async () => {
 el('stopBreak').addEventListener('click', async () => {
   try {
     const res = await fetch('/api/break', { method: 'DELETE', headers: auth() });
-    if (!res.ok) throw new Error('Could not stop the break.');
+    if (!res.ok) throw new Error('Could not stop the timer.');
     await load();
-    say('Break stopped');
+    say('Timer stopped');
   } catch (err) { say(err.message, true); }
 });
 

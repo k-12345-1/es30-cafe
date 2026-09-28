@@ -93,10 +93,9 @@ function cycle(at) {
      closing   the break is running
      closed    everything else
 
-   The till is open by default: orders are taken whenever the cafe is not shut
-   by hand, so a snack can be ordered ahead of Wednesday as easily as during
-   the break. Stop closes it for the rest of that day, and it opens again the
-   next morning. */
+   The till is always open: an order can be placed any day of the week, and
+   the clock is only ever about when to come and collect. Stop ends the clock,
+   it does not close the cafe. */
 
 // The wait for staff to press start, and with it the end of the countdown's
 // cycle: this long after the doors were due, the clock leaves the menu,
@@ -122,21 +121,19 @@ function cafeState(brk = {}, at = Date.now()) {
     ? byHand + OPENS_LEAD_MINUTES * 60_000
     : scheduled.opensAt;
 
-  // Pressing stop shuts the till for the rest of that day, and the next day
-  // opens by itself. A stop from before the countdown began does not carry
-  // into it: the cafe's own window starts the day whatever happened earlier.
-  const stopped = Boolean(
-    closedAt && localDay(closedAt) === localDay(at) && closedAt >= countdownFrom
-  );
+  // Pressing stop ends the clock for that cycle: the countdown or the ten
+  // minutes stop where they are and the clock leaves the menu. Ordering is
+  // untouched by it, today or any other day.
+  const stopped = Boolean(closedAt && closedAt >= countdownFrom);
   const breakThisCycle = Boolean(endsAt && endsAt >= countdownFrom);
   const running = !stopped && Boolean(endsAt && endsAt > at);
-  const ordersOpen = !stopped;
+  const ordersOpen = true;
 
   let mode = 'closed';
   let target = null;
 
   if (stopped) {
-    mode = 'closed';                       // shut by hand for the rest of today
+    mode = 'closed';                       // the clock was stopped by hand
   } else if (running) {
     mode = 'closing';
     target = endsAt;
@@ -163,7 +160,7 @@ function cafeState(brk = {}, at = Date.now()) {
   const cafeDay = new Date(at).getDay() === OPEN_WEEKDAY;
   const show =
     mode !== 'closed' ||
-    Boolean(cafeDay && lastMark && at < signUntil);
+    Boolean(cafeDay && !stopped && lastMark && at < signUntil);
 
   // The next time the doors are due, and the next time the till opens, which
   // is when the hour begins rather than when the break does.
@@ -946,8 +943,8 @@ app.post('/api/break', staffOnly, async (req, res) => {
   res.json({ ok: true, endsAt });
 });
 
-// Stop: the till closes. The clock holds its closed sign, and nothing else
-// can be ordered until the next cycle comes round.
+// Stop: the clock ends and leaves the menu. Ordering carries on as usual;
+// the only thing this closes is the countdown.
 app.delete('/api/break', staffOnly, async (_req, res) => {
   await exclusive(async () => {
     const brk = await readJson(BREAK_FILE, {});

@@ -190,20 +190,10 @@ function runClock() {
     const note = el('clockNote');
     if (!note) return;
 
-    // Orders are taken whether or not there is a clock, so the line says when
-    // the counter opens rather than when ordering does. Shut by hand, it says
-    // when the cafe is next due instead.
-    const when = state.ordersOpen ? nextOpensAt : nextOrdersAt;
-
-    if (when) {
-      const at = new Date(when);
-      const time = at
-        .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-        .replace(/\s?([AP])M/i, (_, half) => half.toLowerCase() + 'm');
-      const day = at.toLocaleDateString(undefined, { weekday: 'long' });
-      note.textContent = state.ordersOpen
-        ? `Order now, pick up on ${day}.`
-        : `Closed for today. Ordering opens again ${day} at ${time}.`;
+    // Orders are always taken, so the line says when to come and collect.
+    if (nextOpensAt) {
+      const day = new Date(nextOpensAt).toLocaleDateString(undefined, { weekday: 'long' });
+      note.textContent = `Order now, pick up on ${day}.`;
       note.classList.add('waiting');
       note.hidden = false;
     } else {

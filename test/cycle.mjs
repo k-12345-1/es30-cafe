@@ -58,16 +58,16 @@ show('Wed 13:12 (clock runs out)', run('2026-09-30T13:12:00', started));
 show('Wed 13:20 (still serving)', run('2026-09-30T13:20:00', started));
 
 const stoppedToo = { ...started, closedAt: new Date('2026-09-30T13:21:00').getTime() };
-show('Wed 13:22 (after staff press stop)', run('2026-09-30T13:22:00', stoppedToo));
-show('Wed 13:59 (sign still up)', run('2026-09-30T13:59:00', stoppedToo));
-show('Wed 14:30 (shut for the day)', run('2026-09-30T14:30:00', stoppedToo));
-show('Wed 23:00 (still shut)', run('2026-09-30T23:00:00', stoppedToo));
-show('Thu 09:00 (open again by itself)', run('2026-10-01T09:00:00', stoppedToo));
+show('Wed 13:22 (stop pressed: clock off)', run('2026-09-30T13:22:00', stoppedToo));
+show('Wed 13:59 (still ordering)', run('2026-09-30T13:59:00', stoppedToo));
+show('Wed 14:30 (afternoon)', run('2026-09-30T14:30:00', stoppedToo));
+show('Wed 23:00 (that night)', run('2026-09-30T23:00:00', stoppedToo));
+show('Thu 09:00 (next morning)', run('2026-10-01T09:00:00', stoppedToo));
 show('Thu 12:30 (next day)', run('2026-10-01T12:30:00', started));
 
-console.log('\nThe till was shut on Wednesday morning by mistake\n');
+console.log('\nThe clock was stopped on Wednesday morning\n');
 const shutEarly = { closedAt: new Date('2026-09-30T09:30:00').getTime() };
-show('Wed 10:00 (shut)', run('2026-09-30T10:00:00', shutEarly));
+show('Wed 10:00 (nothing running)', run('2026-09-30T10:00:00', shutEarly));
 show('Wed 11:45 (the window starts the day)', run('2026-09-30T11:45:00', shutEarly));
 show('Wed 13:00 (doors due)', run('2026-09-30T13:00:00', shutEarly));
 
