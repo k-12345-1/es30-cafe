@@ -1348,13 +1348,6 @@ body.shut .row-desc { opacity: 0.5; }
   background: var(--ink);
 }
 
-.max-every {
-  margin: 16px 0 0;
-  font-size: 19px;
-  -webkit-text-stroke: 0.6px var(--ink);
-  letter-spacing: 0.02em;
-}
-
 .max-actions {
   display: flex;
   gap: 10px;
