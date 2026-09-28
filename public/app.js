@@ -202,7 +202,7 @@ function runClock() {
         .replace(/\s?([AP])M/i, (_, half) => half.toLowerCase() + 'm');
       const day = at.toLocaleDateString(undefined, { weekday: 'long' });
       note.textContent = state.ordersOpen
-        ? `Order now, pick up ${day} at ${time}.`
+        ? `Order now, pick up on ${day}.`
         : `Closed for today. Ordering opens again ${day} at ${time}.`;
       note.classList.add('waiting');
       note.hidden = false;
