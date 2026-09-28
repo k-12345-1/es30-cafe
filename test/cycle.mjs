@@ -13,10 +13,10 @@ const constant = (name) => {
 const probe = `
   const BREAK_MINUTES = ${constant('BREAK_MINUTES')};
   const OPENS_LEAD_MINUTES = ${constant('OPENS_LEAD_MINUTES')};
-  const SERVING_LIMIT_MINUTES = ${constant('SERVING_LIMIT_MINUTES')};
   const SOON_HOLD_MINUTES = ${constant('SOON_HOLD_MINUTES')};
   const CLOSED_SIGN_MINUTES = ${constant('CLOSED_SIGN_MINUTES')};
-  const OPEN_WEEKDAY = 3, OPEN_HOUR = 12, OPEN_MINUTE = 0;
+  const OPEN_WEEKDAY = 3, OPEN_HOUR = 11, OPEN_MINUTE = 45;
+  const localDay = (at) => new Date(at).toLocaleDateString('en-CA');
   ${src('cycle')}
   ${src('cafeState')}
   const [iso, brkJson] = process.argv.slice(1);
@@ -38,14 +38,15 @@ const show = (label, r) =>
     '| clock', r.clock ? 'on ' : 'off', '| orders', r.orders ? 'OPEN' : 'shut');
 
 console.log('\nNobody has pressed start yet\n');
-show('Wed 11:59 (before the hour)', run('2026-09-30T11:59:00'));
-show('Wed 12:00 (the hour begins)', run('2026-09-30T12:00:00'));
+show('Tue 15:00 (the day before)', run('2026-09-29T15:00:00'));
+show('Wed 11:44 (before the countdown)', run('2026-09-30T11:44:00'));
+show('Wed 11:45 (countdown begins)', run('2026-09-30T11:45:00'));
 show('Wed 12:30', run('2026-09-30T12:30:00'));
 show('Wed 12:59', run('2026-09-30T12:59:00'));
-show('Wed 13:00 (hour up)', run('2026-09-30T13:00:00'));
+show('Wed 13:00 (doors due)', run('2026-09-30T13:00:00'));
 show('Wed 13:45 (still waiting on staff)', run('2026-09-30T13:45:00'));
 show('Wed 13:59 (last minute of the wait)', run('2026-09-30T13:59:00'));
-show('Wed 14:00 (the cycle is over)', run('2026-09-30T14:00:00'));
+show('Wed 14:00 (the clock is done)', run('2026-09-30T14:00:00'));
 show('Wed 16:00 (given up waiting)', run('2026-09-30T16:00:00'));
 
 // Staff press start at 13:02, so the break ends at 13:12.
@@ -59,15 +60,17 @@ show('Wed 13:20 (still serving)', run('2026-09-30T13:20:00', started));
 const stoppedToo = { ...started, closedAt: new Date('2026-09-30T13:21:00').getTime() };
 show('Wed 13:22 (after staff press stop)', run('2026-09-30T13:22:00', stoppedToo));
 show('Wed 13:59 (sign still up)', run('2026-09-30T13:59:00', stoppedToo));
-show('Wed 14:30 (later that afternoon)', run('2026-09-30T14:30:00', stoppedToo));
+show('Wed 14:30 (shut for the day)', run('2026-09-30T14:30:00', stoppedToo));
+show('Wed 23:00 (still shut)', run('2026-09-30T23:00:00', stoppedToo));
+show('Thu 09:00 (open again by itself)', run('2026-10-01T09:00:00', stoppedToo));
 show('Thu 12:30 (next day)', run('2026-10-01T12:30:00', started));
 
-console.log('\nStaff try the hour by hand on a Saturday, at 13:00\n');
+console.log('\nStaff try the countdown by hand on a Saturday, at 13:00\n');
 const byHand = { countdownAt: new Date('2026-10-03T13:00:00').getTime() };
-show('Sat 13:30 (hour running)', run('2026-10-03T13:30:00', byHand));
-show('Sat 14:15 (hour up)', run('2026-10-03T14:15:00', byHand));
+show('Sat 13:30 (countdown running)', run('2026-10-03T13:30:00', byHand));
+show('Sat 14:15 (countdown up)', run('2026-10-03T14:15:00', byHand));
 const handStopped = { ...byHand, closedAt: new Date('2026-10-03T14:20:00').getTime() };
 show('Sat 14:21 (after stop)', run('2026-10-03T14:21:00', handStopped));
 show('Sun 10:00 (next morning)', run('2026-10-04T10:00:00', handStopped));
 
-show('Next Wed 12:30 (hour again)', run('2026-10-07T12:30:00', started));
+show('Next Wed 12:30 (counting again)', run('2026-10-07T12:30:00', started));

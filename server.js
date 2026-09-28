@@ -54,13 +54,12 @@ const BREAK_FILE = path.join(DATA_DIR, 'break.json');
    so these are wall-clock times here. */
 
 const BREAK_MINUTES = 10;
-const OPENS_LEAD_MINUTES = 60;
-// If the till is never closed by hand, it closes itself this long after the
-// break ends rather than selling all afternoon.
-const SERVING_LIMIT_MINUTES = 60;
+// The countdown runs from when it starts to when the doors are due: 11:45 to
+// 1:00 on a Wednesday.
+const OPENS_LEAD_MINUTES = 75;
 
 const OPEN_WEEKDAY = Number(process.env.OPEN_WEEKDAY ?? 3);   // 0 Sunday … 3 Wednesday
-const [OPEN_HOUR, OPEN_MINUTE] = (process.env.OPEN_TIME || '12:00').split(':').map(Number);
+const [OPEN_HOUR, OPEN_MINUTE] = (process.env.OPEN_TIME || '11:45').split(':').map(Number);
 
 // The scheduled break either side of a moment: the last one to have started,
 // and the next one due.
@@ -89,17 +88,19 @@ function cycle(at) {
 
 /* What the clock says and whether the till is open.
 
-     opening   the hour before the cafe opens, counting down
-     soon      that hour is up; waiting on staff to start the break
+     opening   the run-up to the cafe opening, counting down
+     soon      that countdown is up; waiting on staff to start the break
      closing   the break is running
      closed    everything else
 
-   Orders are taken from the moment the hour begins, through the break, and on
-   past the end of it until staff press stop. */
+   The till is open by default: orders are taken whenever the cafe is not shut
+   by hand, so a snack can be ordered ahead of Wednesday as easily as during
+   the break. Stop closes it for the rest of that day, and it opens again the
+   next morning. */
 
-// The wait for staff to press start, and with it the end of the whole cycle:
-// an hour after the doors were due, the menu goes back to saying when to come
-// again, whatever happened in between.
+// The wait for staff to press start, and with it the end of the countdown's
+// cycle: this long after the doors were due, the clock leaves the menu,
+// whatever happened in between.
 const SOON_HOLD_MINUTES = 60;
 // How long the closed sign stays up after a break, never past the end of the
 // cycle above.
@@ -121,33 +122,28 @@ function cafeState(brk = {}, at = Date.now()) {
     ? byHand + OPENS_LEAD_MINUTES * 60_000
     : scheduled.opensAt;
 
-  // Anything staff did belongs to this cycle only; last week's does not count.
-  const stopped = Boolean(closedAt && closedAt >= countdownFrom);
+  // Pressing stop shuts the till for the rest of that day. The next day opens
+  // by itself, so nobody has to remember to switch the cafe back on.
+  const stopped = Boolean(closedAt && localDay(closedAt) === localDay(at));
   const breakThisCycle = Boolean(endsAt && endsAt >= countdownFrom);
   const running = !stopped && Boolean(endsAt && endsAt > at);
+  const ordersOpen = !stopped;
 
   let mode = 'closed';
   let target = null;
-  let ordersOpen = false;
 
   if (stopped) {
-    mode = 'closed';                       // staff shut the till
+    mode = 'closed';                       // shut by hand for the rest of today
   } else if (running) {
     mode = 'closing';
     target = endsAt;
-    ordersOpen = true;
   } else if (breakThisCycle) {
-    // The ten minutes are up. The sign says closed, but the queue is still
-    // being served until staff press stop, or until the guard below.
-    mode = 'closed';
-    ordersOpen = at < endsAt + SERVING_LIMIT_MINUTES * 60_000;
+    mode = 'closed';                       // the ten minutes are up
   } else if (at < opensAt) {
     mode = 'opening';
     target = opensAt;
-    ordersOpen = true;
   } else if (at < opensAt + SOON_HOLD_MINUTES * 60_000) {
     mode = 'soon';
-    ordersOpen = true;
   }
 
   // On any other day there is nothing to count, so the clock is not on the menu
@@ -164,7 +160,6 @@ function cafeState(brk = {}, at = Date.now()) {
   const cafeDay = new Date(at).getDay() === OPEN_WEEKDAY;
   const show =
     mode !== 'closed' ||
-    ordersOpen ||                                   // still serving the queue
     Boolean(cafeDay && lastMark && at < signUntil);
 
   // The next time the doors are due, and the next time the till opens, which

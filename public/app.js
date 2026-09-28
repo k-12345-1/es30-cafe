@@ -98,7 +98,8 @@ let clockOffset = 0;        // server time minus this device's time
 let clockMode = 'closed';   // opening, soon, closing, closed: the server decides
 let clockTarget = null;     // the moment being counted to, when there is one
 let clockShown = null;      // null until the first answer from the server
-let nextOrdersAt = null;    // when the till next opens, which is when the hour starts
+let nextOrdersAt = null;    // when the till next opens, if it is shut just now
+let nextOpensAt = null;     // when the doors are next due
 let clockTimer;
 
 let clockDrawn = false;
@@ -172,7 +173,8 @@ function paintClock(msLeft, mode) {
       soon: 'Opening any moment now.',
       closed: 'Time to go back to lecture!'
     };
-    const line = state.ordersOpen ? '' : (lines[mode] || '');
+    // Orders are taken throughout, so these say what the counter is doing.
+    const line = mode === 'closed' && state.ordersOpen ? '' : (lines[mode] || '');
     note.textContent = line;
     note.hidden = !line;
     note.classList.toggle('waiting', mode === 'opening' || mode === 'soon');
@@ -188,13 +190,20 @@ function runClock() {
     const note = el('clockNote');
     if (!note) return;
 
-    if (nextOrdersAt) {
-      const when = new Date(nextOrdersAt);
-      const time = when
+    // Orders are taken whether or not there is a clock, so the line says when
+    // the counter opens rather than when ordering does. Shut by hand, it says
+    // when the cafe is next due instead.
+    const when = state.ordersOpen ? nextOpensAt : nextOrdersAt;
+
+    if (when) {
+      const at = new Date(when);
+      const time = at
         .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
         .replace(/\s?([AP])M/i, (_, half) => half.toLowerCase() + 'm');
-      note.textContent =
-        `Accepting orders on ${when.toLocaleDateString(undefined, { weekday: 'long' })} at ${time}.`;
+      const day = at.toLocaleDateString(undefined, { weekday: 'long' });
+      note.textContent = state.ordersOpen
+        ? `Order now, pick up ${day} at ${time}.`
+        : `Closed for today. Ordering opens again ${day} at ${time}.`;
       note.classList.add('waiting');
       note.hidden = false;
     } else {
@@ -285,6 +294,7 @@ async function syncMenu() {
   const target = data.clock?.target || null;
   const shown = data.clock?.show !== false;
   nextOrdersAt = data.nextOrdersAt || null;
+  nextOpensAt = data.nextOpensAt || null;
   if (mode !== clockMode || target !== clockTarget || shown !== clockShown) {
     clockMode = mode;
     clockTarget = target;
