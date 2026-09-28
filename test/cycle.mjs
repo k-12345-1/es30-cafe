@@ -65,6 +65,12 @@ show('Wed 23:00 (still shut)', run('2026-09-30T23:00:00', stoppedToo));
 show('Thu 09:00 (open again by itself)', run('2026-10-01T09:00:00', stoppedToo));
 show('Thu 12:30 (next day)', run('2026-10-01T12:30:00', started));
 
+console.log('\nThe till was shut on Wednesday morning by mistake\n');
+const shutEarly = { closedAt: new Date('2026-09-30T09:30:00').getTime() };
+show('Wed 10:00 (shut)', run('2026-09-30T10:00:00', shutEarly));
+show('Wed 11:45 (the window starts the day)', run('2026-09-30T11:45:00', shutEarly));
+show('Wed 13:00 (doors due)', run('2026-09-30T13:00:00', shutEarly));
+
 console.log('\nStaff try the countdown by hand on a Saturday, at 13:00\n');
 const byHand = { countdownAt: new Date('2026-10-03T13:00:00').getTime() };
 show('Sat 13:30 (countdown running)', run('2026-10-03T13:30:00', byHand));

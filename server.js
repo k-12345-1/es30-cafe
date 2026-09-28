@@ -122,9 +122,12 @@ function cafeState(brk = {}, at = Date.now()) {
     ? byHand + OPENS_LEAD_MINUTES * 60_000
     : scheduled.opensAt;
 
-  // Pressing stop shuts the till for the rest of that day. The next day opens
-  // by itself, so nobody has to remember to switch the cafe back on.
-  const stopped = Boolean(closedAt && localDay(closedAt) === localDay(at));
+  // Pressing stop shuts the till for the rest of that day, and the next day
+  // opens by itself. A stop from before the countdown began does not carry
+  // into it: the cafe's own window starts the day whatever happened earlier.
+  const stopped = Boolean(
+    closedAt && localDay(closedAt) === localDay(at) && closedAt >= countdownFrom
+  );
   const breakThisCycle = Boolean(endsAt && endsAt >= countdownFrom);
   const running = !stopped && Boolean(endsAt && endsAt > at);
   const ordersOpen = !stopped;
