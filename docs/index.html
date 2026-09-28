@@ -1328,12 +1328,15 @@ body.shut .row-desc { opacity: 0.5; }
 .max-wrap.up { opacity: 1; }
 #maxOffer[hidden] { display: none; }
 
+/* The palette turned over: ink ground, cream lettering, so the offer reads as
+   its own thing rather than more of the receipt behind it. */
 .max-card {
   width: min(100%, 380px);
   max-height: calc(100svh - 48px);
   overflow-y: auto;
-  background: var(--cream);
-  border: 3px solid var(--ink);
+  background: var(--ink);
+  color: var(--cream);
+  border: 3px solid var(--cream);
   border-radius: 22px;
   padding: 26px 26px 22px;
   text-align: center;
@@ -1348,7 +1351,6 @@ body.shut .row-desc { opacity: 0.5; }
   font-family: var(--banner);
   font-size: 34px;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
   margin: 0 0 12px;
 }
 
@@ -1368,7 +1370,7 @@ body.shut .row-desc { opacity: 0.5; }
   padding-left: 26px;
   font-size: 16px;
   line-height: 1.35;
-  -webkit-text-stroke: 0.3px var(--ink);
+  -webkit-text-stroke: 0.3px var(--cream);
 }
 
 /* A drawn bullet rather than the browser's dot. */
@@ -1380,7 +1382,7 @@ body.shut .row-desc { opacity: 0.5; }
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--cream);
 }
 
 .max-actions {
@@ -1393,10 +1395,10 @@ body.shut .row-desc { opacity: 0.5; }
 .max-go {
   margin-top: 20px;
   padding: 11px 18px;
-  border: 2.5px solid var(--ink);
+  border: 2.5px solid var(--cream);
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--cream);
+  background: var(--cream);
+  color: var(--ink);
   font-family: var(--hand);
   font-size: 15px;
   letter-spacing: 0.04em;
@@ -1404,7 +1406,7 @@ body.shut .row-desc { opacity: 0.5; }
   transition: background 170ms ease, color 170ms ease;
 }
 
-.max-go:hover:not(:disabled) { background: transparent; color: var(--ink); }
+.max-go:hover:not(:disabled) { background: transparent; color: var(--cream); }
 .max-go:disabled { opacity: 0.6; cursor: default; }
 
 /* The name on the pass, asked for before any money is. */
@@ -1422,19 +1424,25 @@ body.shut .row-desc { opacity: 0.5; }
 .max-form input {
   width: 100%;
   padding: 11px 14px;
-  border: 2.5px solid var(--hair);
+  border: 2.5px solid rgba(255, 235, 175, 0.5);
   border-radius: 12px;
   background: transparent;
-  color: var(--ink);
+  color: var(--cream);
   font-family: var(--hand);
   font-size: 16px;
 }
 
-.max-form input:focus { outline: none; border-color: var(--ink); }
+.max-form input::placeholder { color: rgba(255, 235, 175, 0.55); }
+.max-form input:focus { outline: none; border-color: var(--cream); }
 .max-form .max-go, .max-form .max-close { margin-top: 4px; }
 
 /* Stripe draws its own form in here. */
-.max-pay { margin-top: 16px; }
+.max-pay {
+  margin-top: 16px;
+  background: var(--cream);
+  border-radius: 14px;
+  padding: 10px;
+}
 #maxPayMount[hidden] { display: none; }
 
 .max-note {
@@ -1447,10 +1455,10 @@ body.shut .row-desc { opacity: 0.5; }
 .max-close {
   margin-top: 20px;
   padding: 11px 18px;
-  border: 2.5px solid var(--hair);
+  border: 2.5px solid rgba(255, 235, 175, 0.5);
   border-radius: 999px;
   background: transparent;
-  color: var(--ink);
+  color: var(--cream);
   font-family: var(--hand);
   font-size: 15px;
   letter-spacing: 0.04em;
@@ -1458,7 +1466,7 @@ body.shut .row-desc { opacity: 0.5; }
   transition: background 170ms ease, color 170ms ease;
 }
 
-.max-close:hover { border-color: var(--ink); }
+.max-close:hover { border-color: var(--cream); }
 
 @media (prefers-reduced-motion: reduce) {
   .max-wrap, .max-card { transition: none; }

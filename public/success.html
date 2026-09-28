@@ -28,7 +28,7 @@
 <div class="max-wrap" id="maxOffer" hidden>
   <div class="max-card" role="dialog" aria-modal="true" aria-labelledby="maxTitle">
     <h2 class="max-title" id="maxTitle">WaiTER MAX</h2>
-    <p class="max-line">Want a free snack and drink every class? Pay $50 for:</p>
+    <p class="max-line">One time $50 payment includes:</p>
     <ul class="max-list">
       <li>WaiTER MAX express lane during the 10-minute break</li>
       <li>1 FREE bottle of WaiTER</li>
@@ -295,12 +295,8 @@ async function settleMax() {
   document.getElementById('maxDone').addEventListener('click', hideMax);
   return true;
 }
-document.getElementById('maxOffer').addEventListener('click', (event) => {
-  if (event.target.id === 'maxOffer') hideMax();     // the dimmed ground around it
-});
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !document.getElementById('maxOffer').hidden) hideMax();
-});
+// No stray tap or key closes this: the offer goes when No thanks is pressed,
+// and not before.
 
 settleMax();
 load();
