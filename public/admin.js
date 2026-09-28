@@ -418,7 +418,9 @@ function showBreak() {
   // The hour can be started by hand any day; there is nothing to start while
   // the ten minutes are running.
   hour.hidden = data.clock?.mode === 'closing';
-  hour.textContent = data.clock?.mode === 'opening' ? 'Restart the hour' : 'Start the hour';
+  hour.textContent = data.clock?.mode === 'opening'
+    ? 'Restart the hour and 15 minutes'
+    : 'Start the hour and 15 minutes';
 
   // Once the till is shut there is nothing left to count, even if the ten
   // minutes had time on them when stop was pressed.
