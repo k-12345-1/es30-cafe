@@ -34,7 +34,7 @@ export const MENU = [
             price: 1000,
             stock: 12,
             desc:
-              'A bottle of water with AI. Additionally, 1% of every WaiTER purchase '
+              'A bottle of water with AI. Additionally, every WaiTER purchase '
               + 'goes toward supporting sustainable water usage for AI.'
           }
         ]
