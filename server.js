@@ -1151,6 +1151,7 @@ app.get('/api/admin', staffOnly, async (_req, res) => {
           id: item.id,
           name: item.name,
           price: item.price,
+          desc: item.desc || '',
           section: section.section,
           group: group.title,
           onHand: stock[item.id] ?? 0,
@@ -1311,6 +1312,37 @@ app.patch('/api/items/:id', staffOnly, async (req, res) => {
 
     announce();
     res.json({ ok: true, item: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Shuffling the running order. An item moves within its own group only, so a
+// drink cannot wander into the snacks by pressing an arrow twice.
+app.post('/api/items/:id/move', staffOnly, async (req, res) => {
+  const step = req.body?.direction === 'up' ? -1 : 1;
+
+  try {
+    await exclusive(async () => {
+      const menu = await readMenu();
+      for (const section of menu) {
+        for (const group of section.groups) {
+          const at = group.items.findIndex((i) => i.id === req.params.id);
+          if (at < 0) continue;
+
+          const to = at + step;
+          if (to < 0 || to >= group.items.length) return;      // already at the end
+          const [moved] = group.items.splice(at, 1);
+          group.items.splice(to, 0, moved);
+          await writeJson(MENU_FILE, menu);
+          return;
+        }
+      }
+      throw new Error('That item is no longer on the menu.');
+    });
+
+    announce();
+    res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

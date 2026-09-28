@@ -181,6 +181,10 @@ function render() {
         <input class="stock-input-name" type="text" name="name-${item.id}"
                value="${esc(item.name)}" aria-label="Name of this item">
         <span class="stock-where">${esc(item.section)}${item.group ? ' &middot; ' + esc(item.group) : ''} &middot; ${stockNote(item)}</span>
+        <span class="stock-cap stock-cap-desc">description</span>
+        <input class="stock-input-desc" type="text" name="desc-${item.id}" maxlength="240"
+               value="${esc(item.desc || '')}" placeholder="Optional line under the name"
+               aria-label="Description of ${esc(item.name)}">
       </span>
       <span class="stock-money">
         <span class="stock-cap">price</span>
@@ -194,8 +198,14 @@ function render() {
       </span>
       <span class="stock-money">
         <span class="stock-cap" aria-hidden="true">&nbsp;</span>
-        <button type="button" class="remove" data-id="${item.id}"
-                data-name="${esc(item.name)}" aria-label="Remove ${esc(item.name)}">&times;</button>
+        <span class="stock-tools">
+          <button type="button" class="nudge" data-move="up" data-id="${item.id}"
+                  aria-label="Move ${esc(item.name)} up">&uarr;</button>
+          <button type="button" class="nudge" data-move="down" data-id="${item.id}"
+                  aria-label="Move ${esc(item.name)} down">&darr;</button>
+          <button type="button" class="remove" data-id="${item.id}"
+                  data-name="${esc(item.name)}" aria-label="Remove ${esc(item.name)}">&times;</button>
+        </span>
       </span>
     </div>`).join('');
 
@@ -541,6 +551,24 @@ el('orderList').addEventListener('click', async (event) => {
   } catch (err) { say(err.message, true); }
 });
 
+// Moving an item up or down its group. Saved the moment it is pressed, so the
+// arrows need no visit to Save.
+el('stockList').addEventListener('click', async (event) => {
+  const button = event.target.closest('button[data-move]');
+  if (!button) return;
+
+  try {
+    const res = await fetch(`/api/items/${encodeURIComponent(button.dataset.id)}/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth() },
+      body: JSON.stringify({ direction: button.dataset.move })
+    });
+    if (!res.ok) throw new Error('Could not move that.');
+    await load();
+    say('Order changed');
+  } catch (err) { say(err.message, true); }
+});
+
 /* ---------- stock ---------- */
 
 el('stockForm').addEventListener('submit', async (e) => {
@@ -559,8 +587,10 @@ el('stockForm').addEventListener('submit', async (e) => {
     const name = row.querySelector('.stock-input-name').value.trim();
     const price = Number(row.querySelector('.stock-input-price').value);
     const change = {};
+    const desc = row.querySelector('.stock-input-desc').value.trim();
     if (name && name !== was.name) change.name = name;
     if (Number.isFinite(price) && Math.round(price * 100) !== was.price) change.price = price;
+    if (desc !== (was.desc || '')) change.desc = desc;
     if (Object.keys(change).length) edits.push([id, change]);
   }
 

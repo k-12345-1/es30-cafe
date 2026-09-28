@@ -33,7 +33,9 @@ export const MENU = [
             name: 'Bottle of WAiTER',
             price: 1000,
             stock: 12,
-            desc: 'A bottle of water with AI in it to give you the perfect level of hydration.'
+            desc:
+              'A bottle of water with AI. Additionally, 1% of every WaiTER purchase '
+              + 'goes toward supporting sustainable water usage for AI.'
           }
         ]
       }

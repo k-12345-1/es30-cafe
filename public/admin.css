@@ -207,6 +207,36 @@
 
 .stock-row .stock-input-price { width: 84px; }
 
+/* The description sits under the name, the full width of that column. */
+.stock-cap-desc { margin-top: 10px; }
+/* Same specificity as the rule that gives the little boxes their width. */
+.stock-row .stock-input-desc {
+  width: 100%;
+  font-size: 14px;
+  text-align: left;
+  padding: 9px 12px;
+}
+
+/* Up, down and away, stacked in the last column. */
+.stock-tools { display: flex; align-items: center; gap: 6px; }
+
+.nudge {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--hair);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.nudge:hover { border-color: var(--ink); background: rgba(47, 106, 121, 0.08); }
+
 /* On a phone the row stacks: the name on its own line, then price and count. */
 @media (max-width: 560px) {
   .stock-row { flex-wrap: wrap; row-gap: 8px; }
