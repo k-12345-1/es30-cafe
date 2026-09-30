@@ -25,6 +25,9 @@ const PUBLISHABLE = process.env.STRIPE_PUBLISHABLE_KEY || '';
 // code is pasted, and a staff member has no way to see why the code they typed
 // correctly is being refused.
 const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || '').trim();
+// A second, weaker code for whoever is working the counter: it opens the
+// orders list and nothing else. Set COUNTER_TOKEN in the blueprint.
+const COUNTER_TOKEN = (process.env.COUNTER_TOKEN || '').trim();
 
 // How long an unpaid checkout holds its items before the stock goes back on sale.
 const RESERVE_MINUTES = 30;
@@ -276,7 +279,7 @@ function limit(name, max, windowMs = 60_000) {
    file does, so a deploy reaches everyone at once instead of an hour later. */
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const STAMPED = ['app.js', 'styles.css', 'admin.js', 'admin.css', 'banner.png', 'drink.png'];
+const STAMPED = ['app.js', 'styles.css', 'admin.js', 'admin.css', 'orders.js', 'banner.png', 'drink.png'];
 
 const assetHash = createHash('sha1');
 for (const name of STAMPED) {
@@ -295,6 +298,7 @@ function page(html) {
 const indexPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'index.html'), 'utf8'));
 const adminPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'admin.html'), 'utf8'));
 const successPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'success.html'), 'utf8'));
+const ordersPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'orders.html'), 'utf8'));
 
 // The pages themselves are never cached; only what they point at is.
 const sendPage = (body) => (_req, res) => {
@@ -305,6 +309,8 @@ const sendPage = (body) => (_req, res) => {
 app.get(['/', '/index.html'], sendPage(indexPage));
 app.get('/admin.html', sendPage(adminPage));
 app.get('/success.html', sendPage(successPage));
+app.get('/orders.html', sendPage(ordersPage));
+app.get('/orders', (req, res) => res.redirect('/orders.html'));
 
 // Apple's domain-verification file lives in a dot-folder, which the static
 // middleware hides by default. Wallets on your own domain need it served.
@@ -994,9 +1000,35 @@ app.delete('/api/supplies/:id', staffOnly, async (req, res) => {
 // A tidier way in for staff than typing the file name.
 app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
+/* ---------- the counter's list ----------
+   Everything needed to hand an order over and nothing else: no takings, no
+   stock, no giveaway addresses, no way to change the menu. */
+
+app.get('/api/counter', counterOnly, async (_req, res) => {
+  await reconcile().catch(() => {});
+
+  const orders = await readJson(ORDERS_FILE, {});
+  const paid = Object.entries(orders)
+    .filter(([, o]) => o.paid && o.orderNumber)
+    .map(([id, o]) => ({
+      id,
+      orderNumber: o.orderNumber,
+      day: o.day,
+      name: o.name,
+      createdAt: o.createdAt,
+      fulfilled: Boolean(o.fulfilled),
+      lines: o.lines.map((l) => ({ name: l.name, qty: l.qty }))
+    }))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 200);
+
+  res.json({ now: Date.now(), orders: paid });
+});
+
 // Ticking an order off. Nothing else about the order can be changed here: the
-// name, the lines and the total are what was paid for.
-app.patch('/api/orders/:id', staffOnly, async (req, res) => {
+// name, the lines and the total are what was paid for. Whoever is working the
+// counter can do this; everything else about an order stays with the staff.
+app.patch('/api/orders/:id', counterOnly, async (req, res) => {
   try {
     const done = Boolean(req.body?.fulfilled);
 
@@ -1216,6 +1248,23 @@ function sameSecret(a, b) {
 }
 
 const guessLimit = limit('staff', 15);
+
+/* Whoever is handing the orders over. The staff code opens this too, so there
+   is one less thing to remember on the day. */
+function counterOnly(req, res, next) {
+  const sent = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  const allowed = [COUNTER_TOKEN, ADMIN_TOKEN].filter(Boolean);
+
+  if (allowed.length) {
+    if (sent && allowed.some((code) => sameSecret(sent, code))) return next();
+    return guessLimit(req, res, () => {
+      res.status(401).json({ error: 'Wrong or missing code.' });
+    });
+  }
+
+  if (isLocal(req)) return next();
+  return res.status(401).json({ error: 'Set COUNTER_TOKEN in .env to open this from another machine.' });
+}
 
 function staffOnly(req, res, next) {
   if (ADMIN_TOKEN) {

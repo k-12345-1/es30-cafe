@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ES30 Cafe Orders</title>
+<meta name="theme-color" content="#FFEBAF">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+
+<main class="admin">
+  <div class="admin-head">
+    <h1>ES30 Cafe Orders</h1>
+    <a href="/">view cafe</a>
+  </div>
+
+  <!-- Sign in. Replaced by the list once the code is accepted. -->
+  <form class="signin" id="signin" hidden>
+    <label for="token">Code</label>
+    <div class="pw">
+      <input type="password" id="token" autocomplete="current-password">
+      <button type="button" class="pw-eye" id="showCode" aria-pressed="false" aria-label="Show the code">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path class="pw-open" d="M1.8 12s3.7-6 10.2-6 10.2 6 10.2 6-3.7 6-10.2 6S1.8 12 1.8 12z"/>
+          <circle class="pw-open" cx="12" cy="12" r="3.1"/>
+          <line class="pw-slash" x1="4" y1="20" x2="20" y2="4"/>
+        </svg>
+      </button>
+    </div>
+    <p class="field-error" id="signinError"></p>
+    <button class="pay ready" type="submit">Sign in</button>
+  </form>
+
+  <div id="dash" hidden>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Orders</h2>
+        <span class="live-dot" id="liveDot">connecting…</span>
+      </div>
+      <p class="panel-note" id="ordersNote"></p>
+      <ol class="list" id="orderList"></ol>
+      <p class="admin-msg" id="msg"></p>
+    </section>
+  </div>
+</main>
+
+<script src="orders.js"></script>
+</body>
+</html>

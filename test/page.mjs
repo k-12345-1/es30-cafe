@@ -43,7 +43,7 @@ function fakeWindow() {
   return win;
 }
 
-for (const file of ['public/admin.js', 'public/app.js']) {
+for (const file of ['public/admin.js', 'public/app.js', 'public/orders.js']) {
   const source = readFileSync(file, 'utf8');
   const context = vm.createContext(fakeWindow());
   try {
