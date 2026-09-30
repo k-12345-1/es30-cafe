@@ -98,6 +98,8 @@ function render() {
     else days.push({ key, orders: [order] });
   }
 
+  showPasses();
+
   el('orderList').innerHTML = days.map((day) => `
     <li class="day">
       <span class="day-name">${dayName(day.key)}</span>
@@ -116,6 +118,23 @@ function render() {
         </span>
         <span class="list-right"><span class="order-when">${at(order.createdAt)}</span></span>
       </li>`).join('')}`).join('');
+}
+
+// Who has a pass: a free bottle of WaiTER, a free pack of Oreos and the front
+// of the queue, every class. Sorted by name, since that is what is said at the
+// counter rather than an order number.
+function showPasses() {
+  const passes = data.waiterMax || [];
+
+  el('maxNote').textContent = passes.length
+    ? `${passes.length} pass${passes.length === 1 ? '' : 'es'}: a free WaiTER, a free pack of Oreos and the express lane.`
+    : 'Nobody has a pass yet.';
+
+  el('maxList').innerHTML = passes.map((e) => `
+    <li>
+      <span class="list-main">${esc(e.name)}</span>
+      <span class="list-right">${e.orderNumber ? 'since order #' + e.orderNumber : ''}</span>
+    </li>`).join('');
 }
 
 el('orderList').addEventListener('change', async (event) => {

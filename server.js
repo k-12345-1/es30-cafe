@@ -1006,8 +1006,11 @@ app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
 app.get('/api/counter', counterOnly, async (_req, res) => {
   await reconcile().catch(() => {});
+  await sweepMax().catch(() => {});
 
-  const orders = await readJson(ORDERS_FILE, {});
+  const [orders, maxList] = await Promise.all([
+    readJson(ORDERS_FILE, {}), readJson(MAX_FILE, [])
+  ]);
   const paid = Object.entries(orders)
     .filter(([, o]) => o.paid && o.orderNumber)
     .map(([id, o]) => ({
@@ -1022,7 +1025,14 @@ app.get('/api/counter', counterOnly, async (_req, res) => {
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
     .slice(0, 200);
 
-  res.json({ now: Date.now(), orders: paid });
+  // Who holds a pass, so the counter knows whose drink and Oreos are free and
+  // who goes to the front. Names only: what they paid is the staff's business.
+  const passes = maxList
+    .filter((e) => e.paidAt)
+    .map((e) => ({ id: e.id, name: e.name, orderNumber: e.orderNumber, paidAt: e.paidAt }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  res.json({ now: Date.now(), orders: paid, waiterMax: passes });
 });
 
 // Ticking an order off. Nothing else about the order can be changed here: the
