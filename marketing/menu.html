@@ -1,0 +1,133 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ES30 Cafe menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFEBAF;
+    --ink: #2F6A79;
+    --dot: rgba(47, 106, 121, 0.45);
+    --hand: "Architects Daughter", cursive;
+    --banner: "Archivo Narrow", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+
+  /* US Letter, portrait, at 96 pixels to the inch. */
+  body {
+    width: 816px;
+    height: 1056px;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--hand);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 58px 34px;
+  }
+
+  .top { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .banner { width: 350px; }
+  .goods { width: 128px; }
+
+  .sheet { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  .section-title {
+    font-size: 30px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    -webkit-text-stroke: 1.1px var(--ink);
+    margin: 20px 0 2px;
+  }
+  .section-title:first-of-type { margin-top: 0; }
+
+  .group-title {
+    font-size: 20px;
+    -webkit-text-stroke: 0.4px var(--ink);
+    margin: 14px 0 2px;
+  }
+
+  /* Name, dotted leader, price: one unbroken line, as on the website. */
+  .row {
+    display: flex;
+    align-items: baseline;
+    font-size: 19px;
+    padding: 5px 0;
+  }
+  .row .what { white-space: nowrap; }
+  .leader {
+    flex: 1 1 0;
+    min-width: 18px;
+    margin: 0 8px;
+    border-bottom: 2.5px dotted var(--dot);
+    transform: translateY(-5px);
+  }
+  .price { white-space: nowrap; font-size: 19px; }
+
+  /* How to pay, now that the counter takes Venmo rather than cards. */
+  .pay {
+    margin-top: 20px;
+    border: 3px solid var(--ink);
+    border-radius: 20px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .pay-qr { width: 118px; height: 118px; flex: none; }
+  .pay-words { display: flex; flex-direction: column; gap: 6px; }
+  .pay-how {
+    font-family: var(--banner);
+    font-size: 26px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pay-handle { font-size: 27px; -webkit-text-stroke: 0.5px var(--ink); }
+  .pay-note { font-size: 15px; opacity: 0.8; line-height: 1.35; }
+
+  .foot {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 16px;
+    opacity: 0.75;
+  }
+</style>
+
+<div class="top">
+  <img class="banner" src="../public/banner.png" alt="ES30 Cafe">
+  <img class="goods" src="../public/drink.png" alt="">
+</div>
+
+<div class="sheet">
+  <h2 class="section-title">Drinks</h2>
+  <div class="row"><span class="what">Bottle of WaiTER (8 oz)</span><span class="leader"></span><span class="price">$1.00</span></div>
+  <div class="row"><span class="what">Diet Coke (12 oz)</span><span class="leader"></span><span class="price">$3.00</span></div>
+
+  <h2 class="section-title">Snacks</h2>
+
+  <h3 class="group-title">Sweet</h3>
+  <div class="row"><span class="what">2 Homemade Brownies</span><span class="leader"></span><span class="price">$5.00</span></div>
+  <div class="row"><span class="what">4 Oreos</span><span class="leader"></span><span class="price">$1.00</span></div>
+  <div class="row"><span class="what">Strawberry, Blueberry and Tangerine Fruit Cup (12 oz)</span><span class="leader"></span><span class="price">$5.00</span></div>
+
+  <h3 class="group-title">Savory</h3>
+  <div class="row"><span class="what">Cool Ranch Doritos</span><span class="leader"></span><span class="price">$2.00</span></div>
+  <div class="row"><span class="what">Nacho Cheese Doritos</span><span class="leader"></span><span class="price">$2.00</span></div>
+  <div class="row"><span class="what">Cheetos</span><span class="leader"></span><span class="price">$2.00</span></div>
+  <div class="row"><span class="what">White Cheddar Popcorn</span><span class="leader"></span><span class="price">$2.00</span></div>
+  <div class="row"><span class="what">Classic Lays</span><span class="leader"></span><span class="price">$2.00</span></div>
+  <div class="row"><span class="what">Harvest Cheddar Sun Chips</span><span class="leader"></span><span class="price">$2.00</span></div>
+</div>
+
+<div class="pay">
+  <img class="pay-qr" src="venmo-qr.png" alt="">
+  <div class="pay-words">
+    <p class="pay-how">Pay with Venmo</p>
+    <p class="pay-handle">@katierob1023</p>
+    <p class="pay-note">Scan the code, or search @katierob1023 on Venmo,
+      and pay for what you take.</p>
+  </div>
+</div>
+
+<p class="foot">Pick up at the reception table near the entrance of Lowell Lecture Hall.</p>
