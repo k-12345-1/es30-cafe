@@ -299,12 +299,31 @@ const indexPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'index.html'), 'u
 const adminPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'admin.html'), 'utf8'));
 const successPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'success.html'), 'utf8'));
 const ordersPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'orders.html'), 'utf8'));
+const closedPage = page(await fs.readFile(path.join(PUBLIC_DIR, 'closed.html'), 'utf8'));
 
 // The pages themselves are never cached; only what they point at is.
 const sendPage = (body) => (_req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.type('html').send(body);
 };
+
+/* ---------- the shop is shut ----------
+   The cafe now runs off a printed menu and Venmo, so the online shop, the
+   staff page and the counter page are all closed. Nothing is deleted: the
+   orders, takings, supplies and sign-ups are still on the disk, and setting
+   SHOP_OPEN=1 brings the whole thing back as it was. */
+
+const SHUT = process.env.SHOP_OPEN !== '1';
+
+if (SHUT) {
+  // Anyone with the old link lands on one page that says where to find us.
+  app.get(['/', '/index.html', '/admin.html', '/admin', '/orders.html', '/orders', '/success.html'],
+    sendPage(closedPage));
+
+  // Nothing behind it answers any more, to a browser or to a script.
+  app.all('/api/*', (_req, res) =>
+    res.status(410).json({ error: 'ES30 Cafe is no longer taking orders online.' }));
+}
 
 app.get(['/', '/index.html'], sendPage(indexPage));
 app.get('/admin.html', sendPage(adminPage));
@@ -1223,7 +1242,7 @@ async function reconcile() {
 
 // Often enough that a stray payment surfaces while the customer is still at the
 // counter, rarely enough to be no load at all.
-if (!DEMO) setInterval(() => {
+if (!DEMO && !SHUT) setInterval(() => {
   reconcile().catch(() => {});
   sweepMax().catch(() => {});
 }, 90_000);
