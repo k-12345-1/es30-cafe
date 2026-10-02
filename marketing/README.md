@@ -1,3 +1,16 @@
+# ES30 Cafe print and screen
+
+## The menu
+
+- `es30-cafe-menu.pdf` / `.png` — the printed sheet, US Letter portrait, with the
+  Venmo code at the foot. Source: `menu.html`.
+- `es30-cafe-menu-slide.pptx` / `.png` — the same menu as a 16:9 slide for the
+  lecture screen, without the Venmo code. Source: `menu-slide.html`.
+
+Rebuild either the same way as the advertising slide below, with the window size
+to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
+`make-pptx.py` wraps a 1920x1080 picture in a slide.
+
 # ES30 Cafe advertising slide
 
 - `es30-cafe-slide.pptx` — one 16:9 PowerPoint slide, ready to drop into a deck.

@@ -1,0 +1,103 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ES30 Cafe menu slide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFEBAF;
+    --ink: #2F6A79;
+    --dot: rgba(47, 106, 121, 0.45);
+    --hand: "Architects Daughter", cursive;
+  }
+  * { box-sizing: border-box; margin: 0; }
+
+  body {
+    width: 1920px;
+    height: 1080px;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--hand);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 120px 44px;
+  }
+
+  .banner { width: 520px; margin-bottom: 44px; }
+
+  /* Two columns, so eleven lines read from the back of a lecture hall. */
+  .cols {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 110px;
+    align-content: center;
+  }
+
+  .section-title {
+    font-size: 46px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    -webkit-text-stroke: 1.2px var(--ink);
+    margin: 0 0 6px;
+  }
+  .section-title.later { margin-top: 44px; }
+
+  .group-title { font-size: 27px; -webkit-text-stroke: 0.4px var(--ink); margin: 16px 0 4px; }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    font-size: 34px;
+    padding: 13px 0;
+  }
+  .row .what { white-space: nowrap; }
+  .leader {
+    flex: 1 1 0;
+    min-width: 24px;
+    margin: 0 12px;
+    border-bottom: 3px dotted var(--dot);
+    transform: translateY(-8px);
+  }
+  .price { white-space: nowrap; }
+
+  .desc { font-size: 24px; opacity: 0.72; margin: -6px 0 2px; }
+
+  .foot {
+    margin-top: 54px;
+    font-size: 28px;
+    opacity: 0.8;
+  }
+</style>
+
+<img class="banner" src="../public/banner.png" alt="ES30 Cafe">
+
+<div class="cols">
+  <div>
+    <h2 class="section-title">Drinks</h2>
+    <div class="row"><span class="what">Bottle of WaiTER (8 oz)</span><span class="leader"></span><span class="price">$1.00</span></div>
+    <div class="row"><span class="what">Diet Coke (12 oz)</span><span class="leader"></span><span class="price">$3.00</span></div>
+
+    <h2 class="section-title later">Sweet</h2>
+    <div class="row"><span class="what">2 Homemade Brownies</span><span class="leader"></span><span class="price">$5.00</span></div>
+    <div class="row"><span class="what">4 Oreos</span><span class="leader"></span><span class="price">$1.00</span></div>
+    <div class="row"><span class="what">Fresh Fruit Cup (12 oz)</span><span class="leader"></span><span class="price">$5.00</span></div>
+    <p class="desc">Strawberries, Blueberries, Tangerines...</p>
+  </div>
+
+  <div>
+    <h2 class="section-title">Savory</h2>
+    <div class="row"><span class="what">Cool Ranch Doritos</span><span class="leader"></span><span class="price">$2.00</span></div>
+    <div class="row"><span class="what">Nacho Cheese Doritos</span><span class="leader"></span><span class="price">$2.00</span></div>
+    <div class="row"><span class="what">Cheetos</span><span class="leader"></span><span class="price">$2.00</span></div>
+    <div class="row"><span class="what">White Cheddar Popcorn</span><span class="leader"></span><span class="price">$2.00</span></div>
+    <div class="row"><span class="what">Classic Lays</span><span class="leader"></span><span class="price">$2.00</span></div>
+    <div class="row"><span class="what">Harvest Cheddar Sun Chips</span><span class="leader"></span><span class="price">$2.00</span></div>
+  </div>
+</div>
+
+<p class="foot">Pick up at the reception table near the entrance of Lowell Lecture Hall.</p>
