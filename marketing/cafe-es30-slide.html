@@ -74,7 +74,8 @@
     opacity: 0.8;
   }
 
-  .wordmark {
+  .ribbon { width: 520px; display: block; margin: 0 auto; }
+  .unused {
     font-family: var(--banner);
     font-size: 64px;
     letter-spacing: 0.06em;
@@ -86,7 +87,16 @@
   }
 </style>
 
-<p class="wordmark">Cafe ES30</p>
+<svg class="ribbon" viewBox="0 0 900 256" role="img" aria-label="Cafe ES30">
+    <g fill="none" stroke="var(--ink)" stroke-width="9" stroke-linejoin="round">
+      <path d="M8 28 H892 L832 128 L892 228 H8 L68 128 Z"/>
+      <path d="M30 50 H862 L814 128 L862 206 H30 L78 128 Z" stroke-width="6"/>
+    </g>
+    <text x="450" y="128" text-anchor="middle" dominant-baseline="central"
+          font-family="var(--banner)" font-size="104" letter-spacing="2"
+          fill="var(--cream)" stroke="var(--ink)" stroke-width="7"
+          paint-order="stroke">CAFE ES30</text>
+  </svg>
 
 <div class="cols">
   <div>
