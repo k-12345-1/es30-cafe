@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ES30 Cafe and Cafe ES30</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root { --hand: "Architects Daughter", cursive; --banner: "Archivo Narrow", sans-serif; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; display: flex; font-family: var(--hand);
+         -webkit-font-smoothing: antialiased; }
+
+  /* One half each, the second the first turned over. */
+  .half { flex: 1; padding: 46px 64px 40px; display: flex; flex-direction: column;
+          align-items: center; }
+  .light { --cream: #FFEBAF; --ink: #2F6A79; background: var(--cream); color: var(--ink); }
+  .dark  { --cream: #2F6A79; --ink: #FFEBAF; background: var(--cream); color: var(--ink); }
+
+  .mark { width: 380px; margin-bottom: 26px; display: block; }
+
+  .list { width: 100%; }
+  .section-title { font-size: 30px; letter-spacing: 0.03em; text-transform: uppercase;
+                   -webkit-text-stroke: 1.1px var(--ink); margin: 18px 0 2px; }
+  .section-title:first-child { margin-top: 0; }
+  .group-title { font-size: 21px; -webkit-text-stroke: 0.4px var(--ink); margin: 12px 0 2px; }
+  .row { display: flex; align-items: baseline; font-size: 23px; padding: 6px 0; }
+  .what { white-space: nowrap; }
+  .leader { flex: 1 1 0; min-width: 18px; margin: 0 10px;
+            border-bottom: 2.5px dotted var(--ink); opacity: 0.45; transform: translateY(-6px); }
+  .foot { margin-top: auto; padding-top: 22px; font-size: 18px; opacity: 0.8; text-align: center; }
+</style>
+
+<div class="half light">
+  <img class="mark" src="../public/banner.png" alt="ES30 Cafe">
+  <div class="list" id="light"></div>
+  <p class="foot">Available at the reception table near the entrance of Lowell Lecture Hall.</p>
+</div>
+
+<div class="half dark">
+  <svg class="mark" viewBox="0 0 900 256" role="img" aria-label="Cafe ES30">
+    <g fill="none" stroke="var(--ink)" stroke-width="9" stroke-linejoin="round">
+      <path d="M8 28 H892 L832 128 L892 228 H8 L68 128 Z"/>
+      <path d="M30 50 H862 L814 128 L862 206 H30 L78 128 Z" stroke-width="6"/>
+    </g>
+    <text x="450" y="128" text-anchor="middle" dominant-baseline="central"
+          font-family="var(--banner)" font-size="104" letter-spacing="2"
+          fill="var(--cream)" stroke="var(--ink)" stroke-width="7"
+          paint-order="stroke">CAFE ES30</text>
+  </svg>
+  <div class="list" id="dark"></div>
+  <p class="foot">Available at the reception table near the entrance of Lowell Lecture Hall.</p>
+</div>
+
+<script>
+  // One menu, drawn into both halves, so the two can never drift apart.
+  const MENU = [
+    ['Drinks', '', [['Bottle of WaiTER (8 oz)', '1.00'], ['Diet Coke (12 oz)', '2.00'],
+                    ['Red Bull (8.4 oz)', '2.00'], ['Celsius (12 oz)', '2.00']]],
+    ['Snacks', 'Sweet', [['2 Homemade Brownies', '3.00'], ['4 Oreos', '1.00']]],
+    ['', 'Savory', [['Cool Ranch Doritos', '1.00'], ['Nacho Cheese Doritos', '1.00'],
+                    ['Cheetos', '1.00'], ['White Cheddar Popcorn', '1.00'],
+                    ['Classic Lays', '1.00'], ['Harvest Cheddar Sun Chips', '1.00']]]
+  ];
+
+  const html = MENU.map(([section, group, items]) =>
+    (section ? `<h2 class="section-title">${section}</h2>` : '') +
+    (group ? `<h3 class="group-title">${group}</h3>` : '') +
+    items.map(([what, price]) =>
+      `<div class="row"><span class="what">${what}</span><span class="leader"></span><span>$${price}</span></div>`
+    ).join('')
+  ).join('');
+
+  light.innerHTML = html;
+  dark.innerHTML = html;
+</script>
