@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ES30 Cafe stickers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root { --cream: #FFEBAF; --ink: #2F6A79; --hand: "Architects Daughter", cursive; }
+  * { box-sizing: border-box; margin: 0; }
+
+  /* US Letter at 96 pixels to the inch, six 3in squares two across. */
+  body {
+    width: 816px; height: 1056px; background: #fff;
+    font-family: var(--hand); -webkit-font-smoothing: antialiased;
+    display: grid; grid-template-columns: repeat(2, 288px);
+    grid-auto-rows: 288px; gap: 24px; justify-content: center; align-content: center;
+  }
+
+  .sticker {
+    width: 288px; height: 288px;
+    background: var(--cream); color: var(--ink);
+    border: 2px dashed rgba(47, 106, 121, 0.35);   /* the cut line, not part of the art */
+    border-radius: 34px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; padding: 22px;
+  }
+
+  .sticker img.banner { width: 214px; }
+  .sticker img.goods { width: 96px; }
+  .tag { font-size: 15px; letter-spacing: 0.02em; opacity: 0.85; }
+</style>
+
+<script>
+  const one = `
+    <div class="sticker">
+      <img class="banner" src="../public/banner.png" alt="ES30 Cafe">
+      <img class="goods" src="../public/drink.png" alt="">
+      <p class="tag">Snacks and drinks for ES30.</p>
+    </div>`;
+  document.write(one.repeat(6));
+</script>
