@@ -51,4 +51,6 @@ to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
 
 - `es30-arc-slide.pptx` / `.png` / `.pdf` — the five-stop timeline of the cafe,
   each stop carrying the decision and the lesson. Source: `arc-slide.html`.
-  Stops alternate above and below the rail via a three-row grid per stop.
+  Drawn from Katie's hand sketch: one spine, a diamond for the split with the
+  breakup text inside it, each cafe's ribbon at a diamond vertex, and the other
+  three blocks alternating above and below the line.
