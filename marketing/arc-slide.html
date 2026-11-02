@@ -17,15 +17,15 @@
   .deck { font-size: 32px; text-align: center; margin-top: 12px; }
 
   /* The rail is the spine: every stop hangs off the same line. */
-  .track { height: 740px; display: flex; align-items: center; margin-top: 18px; position: relative; }
+  .track { height: 860px; display: flex; align-items: center; margin-top: 18px; position: relative; }
   /* The spine runs straight, forks where the company did, and rejoins at the merger. */
-  .rail { position: absolute; inset: 0; width: 1920px; height: 740px; left: -64px;
+  .rail { position: absolute; inset: 0; width: 1920px; height: 860px; left: -64px;
           stroke: var(--ink); stroke-width: 5; fill: none; }
   .rail path { opacity: 0.35; }
   .stops { display: flex; width: 100%; position: relative; }
   /* Three rows: label above, dot on the rail, label below. */
-  .stop { flex: 1; height: 740px; display: grid; grid-template-rows: 350px 40px 350px;
-          justify-items: center; padding: 0 14px; }
+  .stop { flex: 1; height: 860px; display: grid; grid-template-rows: 410px 40px 410px;
+          justify-items: center; padding: 0 56px; }
   .dot { width: 30px; height: 30px; border-radius: 50%; background: var(--cream);
          border: 5px solid var(--ink); }
   .stop.now .dot { background: var(--ink); }
@@ -43,30 +43,28 @@
             -webkit-text-stroke: 0.5px var(--ink); }
 
   /* The two marks ride the branches, one per line. */
-  .brand { position: absolute; left: 1344px; width: 158px;
+  .brand { position: absolute; left: 1344px; width: 184px;
            transform: translate(-50%, -50%); }
   .brand.plated { background: var(--ink); padding: 5px 9px; border-radius: 8px;
-                  width: 172px; }
+                  width: 200px; }
   .foot { text-align: center; font-size: 28px; margin-top: auto;
           -webkit-text-stroke: 0.6px var(--ink); }
 </style>
 
 <h1 class="head">The ES30 Cafe arc</h1>
-<p class="deck">One semester, one lecture hall, four decisions</p>
 
 <div class="track">
-  <svg class="rail" viewBox="0 0 1920 740">
-    <path d="M 48 370 H 1184"/>
-    <path d="M 1184 370 C 1304 370 1300 268 1408 268 C 1516 268 1512 370 1632 370"/>
-    <path d="M 1184 370 C 1304 370 1300 472 1408 472 C 1516 472 1512 370 1632 370"/>
-    <path d="M 1632 370 H 1872"/>
+  <svg class="rail" viewBox="0 0 1920 860">
+    <path d="M 48 430 H 1184"/>
+    <path d="M 1184 430 C 1304 430 1300 300 1408 300 C 1516 300 1512 430 1632 430"/>
+    <path d="M 1184 430 C 1304 430 1300 560 1408 560 C 1516 560 1512 430 1632 430"/>
+    <path d="M 1632 430 H 1872"/>
   </svg>
-  <img class="brand" style="top: 326px" src="../public/banner.png" alt="ES30 Cafe">
-  <img class="brand plated" style="top: 416px" src="../public/cafe-es30-banner.png" alt="Cafe ES30">
+  <img class="brand" style="top: 380px" src="../public/banner.png" alt="ES30 Cafe">
+  <img class="brand plated" style="top: 480px" src="../public/cafe-es30-banner.png" alt="Cafe ES30">
   <div class="stops" id="stops"></div>
 </div>
 
-<p class="foot">Back together, at one table, this Wednesday</p>
 
 <script>
   // Each stop carries the decision and the lesson it cost us to learn.
