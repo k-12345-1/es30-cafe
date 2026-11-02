@@ -82,7 +82,6 @@
   stops.innerHTML = STOPS.map(([when, what, note, lesson], i) => `
     <div class="stop${i === STOPS.length - 1 ? ' now' : ''}">
       <div class="${i % 2 ? 'below' : 'above'}">
-        <p class="when">${when}</p>
         <p class="what">${what}</p>
         <p class="note">${note}</p>
         <p class="lesson">${lesson}</p>
