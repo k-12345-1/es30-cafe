@@ -33,3 +33,11 @@ to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
 - `qr.png` — the code on the slide. It points at https://es30-cafe.onrender.com/
   and is drawn at error-correction level Q, so it still reads with a quarter of
   it obscured or the projector out of focus.
+
+# Reunion slide (the merger stunt)
+
+- `es30-reunion-slide.pptx` / `.png` / `.pdf` — ES30 Cafe and Cafe ES30 merging back
+  together: free sticker for everyone, free cookie with a $3 purchase, and a line
+  tying each giveaway to a lecture concept. Source: `reunion-slide.html`.
+  Cafe ES30's ribbon is drawn in cream, so on the cream ground it sits on its own
+  blue plate. Rebuild it the same way as the advertising slide, 1920x1080 at scale 1.
