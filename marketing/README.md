@@ -41,3 +41,8 @@ to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
   tying each giveaway to a lecture concept. Source: `reunion-slide.html`.
   Cafe ES30's ribbon is drawn in cream, so on the cream ground it sits on its own
   blue plate. Rebuild it the same way as the advertising slide, 1920x1080 at scale 1.
+
+# Giveaway slide
+
+- `es30-free-slide.pptx` / `.png` / `.pdf` — the free stickers and free Insomnia
+  Cookies announcement for the lecture screen. Source: `free-slide.html`.
