@@ -46,3 +46,9 @@ to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
 
 - `es30-free-slide.pptx` / `.png` / `.pdf` — the free stickers and free Insomnia
   Cookies announcement for the lecture screen. Source: `free-slide.html`.
+
+# Arc slide
+
+- `es30-arc-slide.pptx` / `.png` / `.pdf` — the five-stop timeline of the cafe,
+  each stop carrying the decision and the lesson. Source: `arc-slide.html`.
+  Stops alternate above and below the rail via a three-row grid per stop.
