@@ -38,8 +38,8 @@
           letter-spacing: 0.08em; opacity: 0.8; }
   .what { font-family: var(--banner); font-size: 40px; text-transform: uppercase;
           line-height: 1.06; margin-top: 4px; }
-  .note { font-size: 25px; line-height: 1.3; margin-top: 8px; }
-  .lesson { font-size: 24px; line-height: 1.3; margin-top: 10px; opacity: 0.85;
+  .note { font-size: 28px; line-height: 1.3; margin-top: 8px; }
+  .lesson { font-size: 26px; line-height: 1.3; margin-top: 10px; opacity: 0.85;
             -webkit-text-stroke: 0.5px var(--ink); }
 
   /* The two marks ride the branches, one per line. */
@@ -69,14 +69,14 @@
 <script>
   // Each stop carries the decision and the lesson it cost us to learn.
   const STOPS = [
-    ['Step one', 'The problem', 'Nobody can get a snack or a drink during a 75-minute lecture. Our go-to-market: sell at the break, in the room, to a captive crowd.',
+    ['Step one', 'The problem', 'No snacks in a 75-minute lecture. Sell at the break.',
      'Find the problem in front of you.'],
-    ['Step two', 'Better margins', 'We cut the online checkout for a printed menu and Venmo, repriced every item, and changed what we stocked.',
-     'Jamal and Sheldon: learn as much as you can as quickly as you can.'],
-    ['Step three', 'We split', 'ES30 Cafe and Cafe ES30, one at each entrance, same menu, same prices.',
-     'A vesting schedule made the split cheap.'],
-    ['This week', 'Back together', 'Executive coaching, one merger, free stickers and a free Insomnia cookie.',
-     'Anna Berger on working through co-founder dynamics.']
+    ['Step two', 'Better margins', 'Paper menu, Venmo, new prices.',
+     'Jamal and Sheldon: learn fast.'],
+    ['Step three', 'We split', 'Two cafes, one at each entrance.',
+     'Vesting made the split cheap.'],
+    ['This week', 'Back together', 'Coaching, a merger, free stickers and cookies.',
+     'Anna Berger on co-founder dynamics.']
   ];
 
   stops.innerHTML = STOPS.map(([when, what, note, lesson], i) => `
