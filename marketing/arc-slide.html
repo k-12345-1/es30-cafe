@@ -42,8 +42,11 @@
   .lesson { font-size: 24px; line-height: 1.3; margin-top: 10px; opacity: 0.85;
             -webkit-text-stroke: 0.5px var(--ink); }
 
-  .branch { font-family: var(--banner); font-size: 27px; text-transform: uppercase;
-            letter-spacing: 0.06em; fill: var(--ink); stroke: none; }
+  /* The two marks ride the branches, one per line. */
+  .brand { position: absolute; left: 1344px; width: 158px;
+           transform: translate(-50%, -50%); }
+  .brand.plated { background: var(--ink); padding: 5px 9px; border-radius: 8px;
+                  width: 172px; }
   .foot { text-align: center; font-size: 28px; margin-top: auto;
           -webkit-text-stroke: 0.6px var(--ink); }
 </style>
@@ -54,12 +57,12 @@
 <div class="track">
   <svg class="rail" viewBox="0 0 1920 740">
     <path d="M 48 370 H 1184"/>
-    <path d="M 1184 370 C 1300 370 1300 288 1408 288 C 1516 288 1516 370 1632 370"/>
-    <path d="M 1184 370 C 1300 370 1300 452 1408 452 C 1516 452 1516 370 1632 370"/>
+    <path d="M 1184 370 C 1304 370 1300 268 1408 268 C 1516 268 1512 370 1632 370"/>
+    <path d="M 1184 370 C 1304 370 1300 472 1408 472 C 1516 472 1512 370 1632 370"/>
     <path d="M 1632 370 H 1872"/>
-    <text class="branch" x="1408" y="345" text-anchor="middle">ES30 Cafe</text>
-    <text class="branch" x="1408" y="415" text-anchor="middle">Cafe ES30</text>
   </svg>
+  <img class="brand" style="top: 326px" src="../public/banner.png" alt="ES30 Cafe">
+  <img class="brand plated" style="top: 416px" src="../public/cafe-es30-banner.png" alt="Cafe ES30">
   <div class="stops" id="stops"></div>
 </div>
 
