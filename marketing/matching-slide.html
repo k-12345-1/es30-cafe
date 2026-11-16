@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Matching Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root { --hand: "Architects Daughter", cursive; --banner: "Archivo Narrow", sans-serif;
+          --cream: #FFEBAF; --ink: #2F6A79; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: var(--cream); color: var(--ink);
+         font-family: var(--hand); -webkit-font-smoothing: antialiased;
+         display: flex; flex-direction: column; align-items: center; justify-content: center;
+         padding: 60px 70px 120px; position: relative; }
+
+  .mark { width: 330px; display: block; }
+  .kicker { font-size: 34px; margin-top: 30px; }
+
+  /* The pivot is in the name, so the inserted syllable is drawn as an insertion. */
+  .head { font-family: var(--banner); font-size: 168px; line-height: 1;
+          text-transform: uppercase; margin-top: 22px; letter-spacing: -0.01em; }
+  .head .ing { color: transparent; -webkit-text-stroke: 3px var(--ink); }
+
+  .lines { margin-top: 40px; text-align: center; font-size: 40px; line-height: 1.45;
+           max-width: 1360px; }
+  .lines .big { display: block; margin-top: 16px; -webkit-text-stroke: 0.7px var(--ink); }
+
+  .foot { position: absolute; left: 0; right: 0; bottom: 58px; text-align: center;
+          font-size: 32px; -webkit-text-stroke: 0.6px var(--ink); }
+</style>
+
+<img class="mark" src="../public/banner.png" alt="ES30 Cafe">
+
+<p class="kicker">Two classes of runway left, so we are positioning for an exit</p>
+
+<h1 class="head">Match<span class="ing">(ing)</span> Group</h1>
+
+<p class="lines">
+  Companies are bought, not sold, which is why we are pivoting rather than pitching.
+  <span class="big">A three-question survey that helps our customers find love within ES30.</span>
+</p>
+
+<p class="foot">Take it at the break, with the people who already know your coffee order</p>

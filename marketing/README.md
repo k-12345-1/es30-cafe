@@ -54,3 +54,9 @@ to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
   Drawn from Katie's hand sketch: one spine, a diamond for the split with the
   breakup text inside it, each cafe's ribbon at a diamond vertex, and the other
   three blocks alternating above and below the line.
+
+# Match(ing) Group slide
+
+- `es30-matching-slide.pptx` / `.png` / `.pdf` — the pivot announcement and the
+  three-question survey. Source: `matching-slide.html`. The "(ing)" is drawn as an
+  outline so the name reads as an insertion into Match Group.
