@@ -11,22 +11,24 @@
   body { width: 1920px; height: 1080px; background: var(--cream); color: var(--ink);
          font-family: var(--hand); -webkit-font-smoothing: antialiased;
          display: flex; flex-direction: column; align-items: center; justify-content: center;
-         padding: 60px 70px 120px; position: relative; }
+         padding: 44px 70px 54px; position: relative; }
 
-  .mark { width: 330px; display: block; }
-  .kicker { font-size: 34px; margin-top: 30px; }
+  .mark { width: 300px; display: block; }
+  .kicker { font-size: 32px; margin-top: 22px; }
 
   /* The pivot is in the name, so the inserted syllable is drawn as an insertion. */
-  .head { font-family: var(--banner); font-size: 168px; line-height: 1;
+  .head { font-family: var(--banner); font-size: 146px; line-height: 1;
           text-transform: uppercase; margin-top: 22px; letter-spacing: -0.01em; }
   .head .ing { color: transparent; -webkit-text-stroke: 3px var(--ink); }
 
-  .lines { margin-top: 40px; text-align: center; font-size: 40px; line-height: 1.45;
+  .lines { margin-top: 28px; text-align: center; font-size: 36px; line-height: 1.45;
            max-width: 1360px; }
   .lines .big { display: block; margin-top: 16px; -webkit-text-stroke: 0.7px var(--ink); }
 
-  .foot { position: absolute; left: 0; right: 0; bottom: 58px; text-align: center;
-          font-size: 32px; -webkit-text-stroke: 0.6px var(--ink); }
+  .scan { display: flex; align-items: center; gap: 30px; margin-top: 44px; }
+  .scan img { width: 230px; display: block; }
+  .scan p { font-size: 34px; line-height: 1.35; text-align: left;
+            -webkit-text-stroke: 0.6px var(--ink); }
 </style>
 
 <img class="mark" src="../public/banner.png" alt="ES30 Cafe">
@@ -40,4 +42,7 @@
   <span class="big">A three-question survey that helps our customers find love within ES30.</span>
 </p>
 
-<p class="foot">Take it at the break, with the people who already know your coffee order</p>
+<div class="scan">
+  <img src="matching-qr.png" alt="Scan to take the survey">
+  <p>Scan to take the survey,<br>three questions, during the break</p>
+</div>
