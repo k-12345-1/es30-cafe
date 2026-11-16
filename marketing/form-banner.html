@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Match(ing) Group banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root { --hand: "Architects Daughter", cursive; --banner: "Archivo Narrow", sans-serif;
+          --cream: #FFEBAF; --ink: #2F6A79; }
+  * { box-sizing: border-box; margin: 0; }
+  /* Google Forms wants 1600x400 and crops the edges, so everything stays centred. */
+  body { width: 1600px; height: 400px; background: var(--cream); color: var(--ink);
+         font-family: var(--hand); -webkit-font-smoothing: antialiased;
+         display: flex; align-items: center; justify-content: center; gap: 46px;
+         padding: 0 70px; }
+
+  .mark { width: 300px; display: block; }
+  .rule { width: 4px; height: 170px; background: var(--ink); opacity: 0.35; border-radius: 2px; }
+  .name { font-family: var(--banner); font-size: 96px; line-height: 1;
+          text-transform: uppercase; letter-spacing: -0.01em; }
+  .name .ing { color: transparent; -webkit-text-stroke: 2.5px var(--ink); }
+  .sub { font-size: 30px; margin-top: 10px; }
+</style>
+
+<img class="mark" src="../public/banner.png" alt="ES30 Cafe">
+<span class="rule"></span>
+<div>
+  <h1 class="name">Match<span class="ing">(ing)</span> Group</h1>
+  <p class="sub">Three questions. Matches released on December 2.</p>
+</div>

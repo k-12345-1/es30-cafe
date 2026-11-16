@@ -60,3 +60,9 @@ to match: 816x1056 at scale 2 for the sheet, 1920x1080 at scale 1 for the slide.
 - `es30-matching-slide.pptx` / `.png` / `.pdf` — the pivot announcement and the
   three-question survey. Source: `matching-slide.html`. The "(ing)" is drawn as an
   outline so the name reads as an insertion into Match Group.
+
+# Google Form header
+
+- `es30-form-banner.png` — the Match(ing) Group header for the Google Form, drawn
+  at 1600x400 (rendered at 2x). Source: `form-banner.html`. Forms crops the edges,
+  so the artwork is centred with wide margins.
